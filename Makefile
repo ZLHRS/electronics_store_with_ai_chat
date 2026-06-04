@@ -1,6 +1,8 @@
 SERVICE = service/auth_service
+USER_SERVICE = service/user_service
 
-.PHONY: up down build dev test lint format migrate migration seed init-db docker-seed docker-init-db set-admin
+.PHONY: up down build dev test lint format migrate migration seed init-db docker-seed docker-init-db set-admin \
+        user-dev user-test user-lint user-format user-migrate user-migration
 
 up:
 	docker compose up -d
@@ -50,3 +52,22 @@ docker-init-db:
 
 docker-create-admin:
 	docker compose exec auth_service python -m app.cli.seed --admin
+
+# User service
+user-dev:
+	cd $(USER_SERVICE) && uv run uvicorn main:app --reload --host 0.0.0.0 --port 8001
+
+user-test:
+	cd $(USER_SERVICE) && uv run pytest
+
+user-lint:
+	cd $(USER_SERVICE) && uv run ruff check .
+
+user-format:
+	cd $(USER_SERVICE) && uv run ruff format . && uv run ruff check --fix .
+
+user-migrate:
+	cd $(USER_SERVICE) && uv run alembic upgrade head
+
+user-migration:
+	cd $(USER_SERVICE) && uv run alembic revision --autogenerate -m "$(name)"
