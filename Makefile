@@ -2,6 +2,7 @@ SERVICE = service/auth_service
 USER_SERVICE = service/user_service
 
 .PHONY: up down build dev test lint format migrate migration seed init-db docker-seed docker-init-db set-admin \
+        up-user build-user down-user \
         user-dev user-test user-lint user-format user-migrate user-migration
 
 up:
@@ -12,6 +13,15 @@ build:
 
 down:
 	docker compose down
+
+up-user:
+	docker compose up -d user_service
+
+build-user:
+	docker compose up -d --build user_service
+
+down-user:
+	docker compose stop user_service
 
 dev:
 	cd $(SERVICE) && uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
