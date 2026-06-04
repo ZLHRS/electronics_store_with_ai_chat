@@ -7,11 +7,9 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
-# Set test DB before any import that may call setup_config().
 _original_db = os.getenv("DB_NAME", "mydb")
 os.environ["DB_NAME"] = os.getenv("TEST_DB_NAME", f"{_original_db}_test")
 
-# Importing factory registers all SQLAlchemy models into Base.metadata.
 from app.factory import create_app  # noqa: E402
 from app.infrastructure.db.model.base_model import Base  # noqa: E402
 from app.presentation.limiters import login_limiter, refresh_limiter, register_limiter  # noqa: E402

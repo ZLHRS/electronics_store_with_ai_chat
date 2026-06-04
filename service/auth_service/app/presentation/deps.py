@@ -47,14 +47,6 @@ def get_session_context(request: Request) -> SessionContext:
 
 
 def require_permission(code: str):
-    """
-    Usage:
-        @router.delete("/users/{id}", dependencies=[Depends(require_permission("users.delete"))])
-
-        # or if you also need the user object:
-        async def handler(user: CurrentUser = Depends(require_permission("users.delete"))):
-    """
-
     async def dep(user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
         if not user.has_permission(code):
             raise HTTPException(status_code=403, detail="Not enough permissions")

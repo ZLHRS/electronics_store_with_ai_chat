@@ -119,7 +119,6 @@ class AuthService:
         await self._sessions.update_last_used(session.id)
         await self._sessions.revoke(session.id)
 
-        # refresh permission cache TTL
         permissions = await self._permissions.get_user_permissions(user_id)
         ttl = self._config.access_token_expire_minutes * 60
         await self._cache.set(user_id, permissions, ttl)

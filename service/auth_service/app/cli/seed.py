@@ -1,9 +1,3 @@
-"""
-Usage:
-    python -m app.cli.seed                          # seed roles & permissions
-    python -m app.cli.seed --admin                  # seed + create admin (prompts)
-    ADMIN_EMAIL=a@a.com ADMIN_PASSWORD=Pwd1 python -m app.cli.seed --admin
-"""
 import asyncio
 import os
 import sys
