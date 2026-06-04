@@ -35,6 +35,25 @@ services:
     networks:
       - internal
 
+  product_service:
+    build:
+      context: ./service/product_service
+      dockerfile: Dockerfile
+    env_file: ./service/product_service/.env
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_NAME=productdb
+      - REDIS_URL=${REDIS_URL}
+      - AUTH_SECRET_KEY=${AUTH_SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - internal
+
   postgres:
     image: postgres:17-alpine
     environment:
@@ -79,6 +98,7 @@ services:
     depends_on:
       - auth_service
       - user_service
+      - product_service
     restart: unless-stopped
     networks:
       - internal

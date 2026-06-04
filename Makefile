@@ -1,9 +1,12 @@
 SERVICE = service/auth_service
 USER_SERVICE = service/user_service
+PRODUCT_SERVICE = service/product_service
 
 .PHONY: up down build dev test lint format migrate migration seed init-db docker-seed docker-init-db set-admin \
         up-user build-user down-user \
-        user-dev user-test user-lint user-format user-migrate user-migration
+        up-product build-product down-product \
+        user-dev user-test user-lint user-format user-migrate user-migration \
+        product-dev product-test product-lint product-format product-migrate product-migration
 
 up:
 	docker compose up -d
@@ -22,6 +25,15 @@ build-user:
 
 down-user:
 	docker compose stop user_service
+
+up-product:
+	docker compose up -d product_service
+
+build-product:
+	docker compose up -d --build product_service
+
+down-product:
+	docker compose stop product_service
 
 dev:
 	cd $(SERVICE) && uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
@@ -81,3 +93,22 @@ user-migrate:
 
 user-migration:
 	cd $(USER_SERVICE) && uv run alembic revision --autogenerate -m "$(name)"
+
+# Product service
+product-dev:
+	cd $(PRODUCT_SERVICE) && uv run uvicorn main:app --reload --host 0.0.0.0 --port 8002
+
+product-test:
+	cd $(PRODUCT_SERVICE) && uv run pytest
+
+product-lint:
+	cd $(PRODUCT_SERVICE) && uv run ruff check .
+
+product-format:
+	cd $(PRODUCT_SERVICE) && uv run ruff format . && uv run ruff check --fix .
+
+product-migrate:
+	cd $(PRODUCT_SERVICE) && uv run alembic upgrade head
+
+product-migration:
+	cd $(PRODUCT_SERVICE) && uv run alembic revision --autogenerate -m "$(name)"
