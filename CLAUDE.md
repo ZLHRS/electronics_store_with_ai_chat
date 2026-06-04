@@ -346,9 +346,11 @@ CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port
 ### Nginx маршрутизация
 
 ```
-/api/v1/users/*    →  user_service:8001
-/api/v1/products/* →  product_service:8002  (добавить при необходимости)
-/*                 →  auth_service:8000
+/api/v1/users/*      →  user_service:8001
+/api/v1/products/*   →  product_service:8002
+/api/v1/categories/* →  product_service:8002
+/api/v1/brands/*     →  product_service:8002
+/*                   →  auth_service:8000
 ```
 
 ### Базы данных
