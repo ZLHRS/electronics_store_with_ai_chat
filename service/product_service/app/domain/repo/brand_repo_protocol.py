@@ -1,0 +1,14 @@
+import uuid
+from typing import Protocol
+
+from app.domain.entity.brand_entity import BrandEntity, CreateBrand
+
+
+class BrandRepository(Protocol):
+    async def get_by_id(self, brand_id: uuid.UUID) -> BrandEntity | None: ...
+
+    async def get_by_slug(self, slug: str) -> BrandEntity | None: ...
+
+    async def list(self) -> list[BrandEntity]: ...
+
+    async def create(self, data: CreateBrand) -> BrandEntity: ...
