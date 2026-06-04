@@ -15,8 +15,10 @@
 Монорепозиторий с микросервисами:
 ```
 Shop/
-├── service/auth_service/   # сервис аутентификации (текущий)
+├── service/auth_service/   # сервис аутентификации
+├── service/user_service/   # профиль, адреса, избранное, история, настройки
 ├── nginx/                  # reverse proxy
+├── postgres/init/          # SQL-скрипты инициализации БД
 ├── docker-compose.yml
 └── Makefile
 ```
@@ -29,52 +31,93 @@ Shop/
 
 ```
 Shop/
-├── docker-compose.yml          # postgres, redis, auth_service, nginx
-├── .env                        # Docker-уровень: DB_HOST=postgres, REDIS_URL=redis://redis:6379
+├── docker-compose.yml          # postgres, redis, auth_service, user_service, nginx
+├── .env                        # Docker-уровень: DB_HOST=postgres, REDIS_URL=redis://redis:6379, AUTH_SECRET_KEY=...
 ├── Makefile                    # команды (см. ниже)
+├── postgres/
+│   └── init/
+│       └── 01_create_userdb.sql  # создаёт БД userdb при первом старте postgres
 └── service/
-    └── auth_service/
-        ├── main.py             # точка входа uvicorn: from app.factory import create_app; app = create_app()
+    ├── auth_service/           # порт 8000, БД: mydb
+    │   ├── main.py             # точка входа uvicorn: from app.factory import create_app; app = create_app()
+    │   ├── app/
+    │   │   ├── factory.py      # create_app() — FastAPI + Dishka + middleware + lifespan
+    │   │   ├── config.py       # setup_config() читает .env через pydantic-settings
+    │   │   ├── exceptions.py   # все доменные исключения
+    │   │   ├── domain/
+    │   │   │   ├── entity/     # UserEntity, SessionEntity (dataclasses, без ORM)
+    │   │   │   ├── repo/       # Protocol-интерфейсы репозиториев
+    │   │   │   └── permissions.py  # class P: USERS_READ = "users.read" ...
+    │   │   ├── application/
+    │   │   │   ├── dto/        # RegisterCommand, LoginTokens, UserResult ...
+    │   │   │   └── service/
+    │   │   │       └── auth_service.py  # вся бизнес-логика auth
+    │   │   ├── infrastructure/
+    │   │   │   ├── cache/
+    │   │   │   │   └── permission_cache.py  # Redis: "permissions:user:{id}" → frozenset[str]
+    │   │   │   ├── db/
+    │   │   │   │   ├── model/  # SQLAlchemy модели (UserModel, RoleModel, PermissionModel ...)
+    │   │   │   │   └── repo/   # SQLAlchemy реализации репозиториев
+    │   │   │   ├── di/         # Dishka провайдеры (DBProvider, RedisProvider, AuthProvider)
+    │   │   │   ├── mapper/     # model → entity конвертеры
+    │   │   │   └── security.py # JWT encode/decode, bcrypt, SecurityService
+    │   │   ├── presentation/
+    │   │   │   ├── api/
+    │   │   │   │   └── auth_api.py  # FastAPI роуты
+    │   │   │   ├── deps.py     # CurrentUser, get_current_user, require_permission()
+    │   │   │   └── exception.py # exception handlers
+    │   │   └── cli/
+    │   │       └── seed.py     # идемпотентный seed ролей и пермишенов
+    │   ├── alembic/
+    │   │   ├── env.py          # ВАЖНО: импортирует все модели для autogenerate
+    │   │   └── versions/       # миграции — только схема, без данных
+    │   └── tests/
+    │       ├── conftest.py     # engine, app, client, db_session фикстуры
+    │       ├── unit/           # FakeRepo, FakeCache — без БД
+    │       ├── integration/    # реальная БД через db_session
+    │       ├── api/            # httpx ASGITransport
+    │       └── e2e/            # полный flow через httpx
+    └── user_service/           # порт 8001, БД: userdb
+        ├── main.py
         ├── app/
-        │   ├── factory.py      # create_app() — FastAPI + Dishka + middleware + lifespan
-        │   ├── config.py       # setup_config() читает .env через pydantic-settings
-        │   ├── exceptions.py   # все доменные исключения
+        │   ├── factory.py
+        │   ├── config.py       # JWTConfig вместо AuthConfig — только decode, без bcrypt
+        │   ├── exceptions.py
         │   ├── domain/
-        │   │   ├── entity/     # UserEntity, SessionEntity (dataclasses, без ORM)
-        │   │   ├── repo/       # Protocol-интерфейсы репозиториев
-        │   │   └── permissions.py  # class P: USERS_READ = "users.read" ...
+        │   │   ├── entity/     # UserProfileEntity, AddressEntity, FavoriteEntity, ViewHistoryEntity, PreferencesEntity
+        │   │   └── repo/       # Protocol-интерфейсы (5 репозиториев)
         │   ├── application/
-        │   │   ├── dto/        # RegisterCommand, LoginTokens, UserResult ...
-        │   │   └── service/
-        │   │       └── auth_service.py  # вся бизнес-логика auth
+        │   │   ├── dto/        # команды и результаты для всех доменов
+        │   │   └── service/    # UserProfileService, AddressService, FavoriteService, ViewHistoryService, PreferencesService
         │   ├── infrastructure/
-        │   │   ├── cache/
-        │   │   │   └── permission_cache.py  # Redis: "permissions:user:{id}" → frozenset[str]
         │   │   ├── db/
-        │   │   │   ├── model/  # SQLAlchemy модели (UserModel, RoleModel, PermissionModel ...)
-        │   │   │   └── repo/   # SQLAlchemy реализации репозиториев
-        │   │   ├── di/         # Dishka провайдеры (DBProvider, RedisProvider, AuthProvider)
+        │   │   │   ├── model/  # UserProfileModel, AddressModel, FavoriteModel, ViewHistoryModel, PreferencesModel
+        │   │   │   └── repo/   # SQLAlchemy реализации
+        │   │   ├── di/         # Dishka провайдеры (DBProvider, RedisProvider, UserProvider)
         │   │   ├── mapper/     # model → entity конвертеры
-        │   │   └── security.py # JWT encode/decode, bcrypt, SecurityService
-        │   ├── presentation/
-        │   │   ├── api/
-        │   │   │   └── auth_api.py  # FastAPI роуты
-        │   │   ├── deps.py     # CurrentUser, get_current_user, require_permission()
-        │   │   └── exception.py # exception handlers
-        │   └── cli/
-        │       └── seed.py     # идемпотентный seed ролей и пермишенов
+        │   │   └── jwt_service.py  # только decode access token (без bcrypt, без сессий)
+        │   └── presentation/
+        │       ├── api/        # user_api, address_api, favorite_api, view_history_api, preferences_api
+        │       ├── deps.py     # CurrentUser{auth_user_id, profile_id}, get_current_user
+        │       └── exception.py
         ├── alembic/
-        │   ├── env.py          # ВАЖНО: импортирует все модели для autogenerate
-        │   └── versions/       # миграции — только схема, без данных
+        │   ├── env.py
+        │   └── versions/
         └── tests/
-            ├── conftest.py     # engine, app, client, db_session фикстуры
-            ├── unit/           # FakeRepo, FakeCache — без БД
-            ├── integration/    # реальная БД через db_session
-            ├── api/            # httpx ASGITransport
-            └── e2e/            # полный flow через httpx
+            ├── conftest.py
+            ├── unit/
+            ├── integration/
+            ├── api/
+            └── e2e/
 ```
 
 ## Ключевые архитектурные решения
+
+### Разделение ответственности между сервисами
+- **Auth Service** = кто ты и можно ли тебе войти: логин, пароль, JWT, сессии, роли/пермишены
+- **User Service** = твой профиль: имя, адреса, избранное, история просмотров, настройки
+
+Связь между сервисами: `user_profiles.auth_user_id` = `users.id` из auth_service. Профиль создаётся лениво при первом обращении к user_service.
 
 ### Auth flow
 - **Access token**: JWT `{sub: user_id, exp, type: "access"}` — без роли, без пермишенов
@@ -102,6 +145,8 @@ users → user_roles → roles → role_permissions → permissions
 
 ## Провайдеры Dishka (DI)
 
+### auth_service
+
 | Scope | Провайдер | Что создаёт |
 |-------|-----------|-------------|
 | APP   | ConfigProvider | Config |
@@ -110,6 +155,17 @@ users → user_roles → roles → role_permissions → permissions
 | APP   | AuthProvider | AuthConfig, SecurityService |
 | REQUEST | DBProvider | AsyncSession |
 | REQUEST | AuthProvider | UserRepo, SessionRepo, PermissionRepo, AuthService |
+
+### user_service
+
+| Scope | Провайдер | Что создаёт |
+|-------|-----------|-------------|
+| APP   | ConfigProvider | Config |
+| APP   | DBProvider | AsyncEngine, async_sessionmaker |
+| APP   | RedisProvider | redis.Redis |
+| APP   | UserProvider | JWTConfig, JWTService |
+| REQUEST | DBProvider | AsyncSession |
+| REQUEST | UserProvider | UserProfileRepo, AddressRepo, FavoriteRepo, ViewHistoryRepo, PreferencesRepo, все сервисы |
 
 Сессия: `provide_session` в `db_di.py` — commit при успехе, rollback при ошибке.  
 **Важно**: после `IntegrityError` в flush делать `await session.rollback()` до re-raise.
@@ -152,7 +208,8 @@ tests/conftest.py
 ## Makefile
 
 ```bash
-make dev              # uvicorn --reload локально
+# auth_service
+make dev              # uvicorn --reload локально (порт 8000)
 make test             # pytest
 make migrate          # alembic upgrade head (локально)
 make migration name=X # alembic revision --autogenerate -m "X"
@@ -163,16 +220,27 @@ make create-admin     # seed --admin (интерактивно или ADMIN_EMAI
 make docker-seed      # seed в Docker контейнере
 make docker-init-db   # migrate + seed в Docker
 make docker-create-admin
+
+# user_service
+make user-dev              # uvicorn --reload локально (порт 8001)
+make user-test             # pytest
+make user-migrate          # alembic upgrade head (локально)
+make user-migration name=X # alembic revision --autogenerate -m "X"
+make user-lint
+make user-format
 ```
 
 ## ENV файлы
 
 | Файл | Для чего |
 |------|----------|
-| `service/auth_service/.env` | Локальная разработка (DB_HOST=localhost) |
-| `.env` (корень) | Docker compose переменные (DB_HOST=postgres, REDIS_URL=redis://redis:6379) |
+| `service/auth_service/.env` | Локальная разработка auth_service (DB_HOST=localhost) |
+| `service/user_service/.env` | Локальная разработка user_service (DB_HOST=localhost, DB_NAME=userdb) |
+| `.env` (корень) | Docker compose переменные (DB_HOST=postgres, REDIS_URL=redis://redis:6379, AUTH_SECRET_KEY=...) |
 
 В Docker `environment:` в `docker-compose.yml` переопределяет `env_file` — поэтому хосты сервисов не нужно менять в `.env`.
+
+**Общий секрет**: `AUTH_SECRET_KEY` должен быть одинаковым в обоих сервисах. В Docker он берётся из корневого `.env` через `${AUTH_SECRET_KEY}` и переопределяет значение из `env_file` сервиса.
 
 ## Частые ошибки
 
@@ -199,7 +267,22 @@ Roles не заполнены в БД.
 ## Docker
 
 ```dockerfile
+# auth_service
 CMD ["sh", "-c", "alembic upgrade head && python -m app.cli.seed && uvicorn main:app --host 0.0.0.0 --port 8000"]
+
+# user_service
+CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8001"]
 ```
 
-При каждом старте контейнера: миграции (идемпотентно) → seed (идемпотентно) → сервер.
+При каждом старте контейнера: миграции (идемпотентно) → сервер.
+
+### Nginx маршрутизация
+
+```
+/api/v1/users/*  →  user_service:8001
+/*               →  auth_service:8000
+```
+
+### База данных userdb
+
+`postgres/init/01_create_userdb.sql` выполняется postgres при **первом** старте (только если `postgres_data` volume пустой). При существующем volume скрипт не запускается — создать `userdb` вручную: `docker compose exec postgres psql -U postgres -c "CREATE DATABASE userdb;"`.
