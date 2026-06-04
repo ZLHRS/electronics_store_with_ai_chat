@@ -15,10 +15,11 @@
 Монорепозиторий с микросервисами:
 ```
 Shop/
-├── service/auth_service/   # сервис аутентификации
-├── service/user_service/   # профиль, адреса, избранное, история, настройки
-├── nginx/                  # reverse proxy
-├── postgres/init/          # SQL-скрипты инициализации БД
+├── service/auth_service/     # сервис аутентификации
+├── service/user_service/     # профиль, адреса, избранное, история, настройки
+├── service/product_service/  # каталог товаров, категории, бренды, фильтрация
+├── nginx/                    # reverse proxy
+├── postgres/init/            # SQL-скрипты инициализации БД
 ├── docker-compose.yml
 └── Makefile
 ```
@@ -31,12 +32,13 @@ Shop/
 
 ```
 Shop/
-├── docker-compose.yml          # postgres, redis, auth_service, user_service, nginx
+├── docker-compose.yml          # postgres, redis, auth_service, user_service, product_service, nginx
 ├── .env                        # Docker-уровень: DB_HOST=postgres, REDIS_URL=redis://redis:6379, AUTH_SECRET_KEY=...
 ├── Makefile                    # команды (см. ниже)
 ├── postgres/
 │   └── init/
-│       └── 01_create_userdb.sql  # создаёт БД userdb при первом старте postgres
+│       ├── 01_create_userdb.sql     # создаёт БД userdb при первом старте postgres
+│       └── 02_create_productdb.sql  # создаёт БД productdb при первом старте postgres
 └── service/
     ├── auth_service/           # порт 8000, БД: mydb
     │   ├── main.py             # точка входа uvicorn: from app.factory import create_app; app = create_app()
@@ -109,6 +111,41 @@ Shop/
             ├── integration/
             ├── api/
             └── e2e/
+    └── product_service/        # порт 8002, БД: productdb
+        ├── main.py
+        ├── app/
+        │   ├── factory.py
+        │   ├── config.py       # JWTConfig — только decode; нет bcrypt
+        │   ├── exceptions.py
+        │   ├── domain/
+        │   │   ├── entity/     # ProductEntity, CategoryEntity, BrandEntity + вложенные Image/Attribute
+        │   │   ├── repo/       # Protocol-интерфейсы (ProductRepo, CategoryRepo, BrandRepo)
+        │   │   └── permissions.py  # class P: PRODUCTS_CREATE/UPDATE/DELETE
+        │   ├── application/
+        │   │   ├── dto/        # команды и результаты; ProductFilter — объект фильтрации
+        │   │   └── service/    # ProductService, CategoryService, BrandService
+        │   ├── infrastructure/
+        │   │   ├── db/
+        │   │   │   ├── model/  # ProductModel, CategoryModel, BrandModel, ProductImageModel, ProductAttributeModel
+        │   │   │   └── repo/   # SQLAlchemy реализации; product_repo содержит логику фильтрации
+        │   │   ├── di/         # Dishka провайдеры (DBProvider, RedisProvider, ProductProvider)
+        │   │   ├── mapper/     # model → entity конвертеры
+        │   │   ├── jwt_service.py       # только decode access token
+        │   │   ├── permission_cache.py  # read-only доступ к Redis ключам auth_service
+        │   │   └── slugify.py           # авто-генерация slug из названия
+        │   └── presentation/
+        │       ├── api/        # product_api, category_api, brand_api, health_api
+        │       ├── deps.py     # CurrentUser{id, permissions}, get_current_user, require_permission()
+        │       └── exception.py
+        ├── alembic/
+        │   ├── env.py
+        │   └── versions/
+        └── tests/
+            ├── conftest.py
+            ├── unit/           # FakeProductRepo + тесты ProductService и slugify
+            ├── integration/    # реальная БД — фильтрация по атрибутам
+            ├── api/
+            └── e2e/            # полный CRUD flow + категории/бренды
 ```
 
 ## Ключевые архитектурные решения
@@ -116,8 +153,11 @@ Shop/
 ### Разделение ответственности между сервисами
 - **Auth Service** = кто ты и можно ли тебе войти: логин, пароль, JWT, сессии, роли/пермишены
 - **User Service** = твой профиль: имя, адреса, избранное, история просмотров, настройки
+- **Product Service** = каталог: товары, категории, бренды, характеристики, фильтрация
 
 Связь между сервисами: `user_profiles.auth_user_id` = `users.id` из auth_service. Профиль создаётся лениво при первом обращении к user_service.
+
+**Права в product_service**: сервис читает `permissions:user:{id}` из того же Redis, куда auth_service пишет после логина — без межсервисных HTTP-вызовов.
 
 ### Auth flow
 - **Access token**: JWT `{sub: user_id, exp, type: "access"}` — без роли, без пермишенов
@@ -166,6 +206,17 @@ users → user_roles → roles → role_permissions → permissions
 | APP   | UserProvider | JWTConfig, JWTService |
 | REQUEST | DBProvider | AsyncSession |
 | REQUEST | UserProvider | UserProfileRepo, AddressRepo, FavoriteRepo, ViewHistoryRepo, PreferencesRepo, все сервисы |
+
+### product_service
+
+| Scope | Провайдер | Что создаёт |
+|-------|-----------|-------------|
+| APP   | ConfigProvider | Config |
+| APP   | DBProvider | AsyncEngine, async_sessionmaker |
+| APP   | RedisProvider | redis.Redis, PermissionCache |
+| APP   | ProductProvider | JWTConfig, JWTService |
+| REQUEST | DBProvider | AsyncSession |
+| REQUEST | ProductProvider | ProductRepo, CategoryRepo, BrandRepo, ProductService, CategoryService, BrandService |
 
 Сессия: `provide_session` в `db_di.py` — commit при успехе, rollback при ошибке.  
 **Важно**: после `IntegrityError` в flush делать `await session.rollback()` до re-raise.
@@ -228,6 +279,18 @@ make user-migrate          # alembic upgrade head (локально)
 make user-migration name=X # alembic revision --autogenerate -m "X"
 make user-lint
 make user-format
+
+# product_service
+make product-dev              # uvicorn --reload локально (порт 8002)
+make product-test             # pytest
+make product-migrate          # alembic upgrade head (локально)
+make product-migration name=X # alembic revision --autogenerate -m "X"
+make product-lint
+make product-format
+
+# Docker — отдельные сервисы
+make up-user / build-user / down-user
+make up-product / build-product / down-product
 ```
 
 ## ENV файлы
@@ -236,11 +299,12 @@ make user-format
 |------|----------|
 | `service/auth_service/.env` | Локальная разработка auth_service (DB_HOST=localhost) |
 | `service/user_service/.env` | Локальная разработка user_service (DB_HOST=localhost, DB_NAME=userdb) |
+| `service/product_service/.env` | Локальная разработка product_service (DB_HOST=localhost, DB_NAME=productdb) |
 | `.env` (корень) | Docker compose переменные (DB_HOST=postgres, REDIS_URL=redis://redis:6379, AUTH_SECRET_KEY=...) |
 
 В Docker `environment:` в `docker-compose.yml` переопределяет `env_file` — поэтому хосты сервисов не нужно менять в `.env`.
 
-**Общий секрет**: `AUTH_SECRET_KEY` должен быть одинаковым в обоих сервисах. В Docker он берётся из корневого `.env` через `${AUTH_SECRET_KEY}` и переопределяет значение из `env_file` сервиса.
+**Общий секрет**: `AUTH_SECRET_KEY` должен быть одинаковым во всех сервисах. В Docker он берётся из корневого `.env` через `${AUTH_SECRET_KEY}` и переопределяет значение из `env_file` сервиса.
 
 ## Частые ошибки
 
@@ -272,6 +336,9 @@ CMD ["sh", "-c", "alembic upgrade head && python -m app.cli.seed && uvicorn main
 
 # user_service
 CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8001"]
+
+# product_service
+CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8002"]
 ```
 
 При каждом старте контейнера: миграции (идемпотентно) → сервер.
@@ -279,10 +346,16 @@ CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port
 ### Nginx маршрутизация
 
 ```
-/api/v1/users/*  →  user_service:8001
-/*               →  auth_service:8000
+/api/v1/users/*    →  user_service:8001
+/api/v1/products/* →  product_service:8002  (добавить при необходимости)
+/*                 →  auth_service:8000
 ```
 
-### База данных userdb
+### Базы данных
 
-`postgres/init/01_create_userdb.sql` выполняется postgres при **первом** старте (только если `postgres_data` volume пустой). При существующем volume скрипт не запускается — создать `userdb` вручную: `docker compose exec postgres psql -U postgres -c "CREATE DATABASE userdb;"`.
+Init-скрипты запускаются postgres при **первом** старте (только если `postgres_data` volume пустой).  
+При существующем volume — создать вручную:
+```bash
+docker compose exec postgres psql -U postgres -c "CREATE DATABASE userdb;"
+docker compose exec postgres psql -U postgres -c "CREATE DATABASE productdb;"
+```
