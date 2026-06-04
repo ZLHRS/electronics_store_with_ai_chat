@@ -1,11 +1,12 @@
 import hashlib
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
 from passlib.context import CryptContext
 
 from app.config import AuthConfig
+from app.exceptions import InvalidTokenError, TokenExpiredError
 
 _pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 _BCRYPT_MAX_BYTES = 72
@@ -26,16 +27,19 @@ class SecurityService:
         return _pwd_context.verify(plain, hashed)
 
     def create_access_token(self, user_id: uuid.UUID) -> str:
-        expire = datetime.now(timezone.utc) + timedelta(
-            minutes=self._config.access_token_expire_minutes
-        )
+        expire = datetime.now(UTC) + timedelta(minutes=self._config.access_token_expire_minutes)
         return self._encode({"sub": str(user_id), "exp": expire, "type": "access"})
 
     def create_refresh_token(self, user_id: uuid.UUID) -> str:
-        expire = datetime.now(timezone.utc) + timedelta(
-            days=self._config.refresh_token_expire_days
+        expire = datetime.now(UTC) + timedelta(days=self._config.refresh_token_expire_days)
+        return self._encode(
+            {
+                "sub": str(user_id),
+                "exp": expire,
+                "type": "refresh",
+                "jti": str(uuid.uuid4()),
+            }
         )
-        return self._encode({"sub": str(user_id), "exp": expire, "type": "refresh"})
 
     def decode_access_token(self, token: str) -> uuid.UUID:
         try:
@@ -45,11 +49,11 @@ class SecurityService:
                 algorithms=[self._config.algorithm],
             )
         except jwt.ExpiredSignatureError:
-            raise ValueError("Access token expired")
+            raise TokenExpiredError("Access token expired")
         except jwt.InvalidTokenError:
-            raise ValueError("Invalid access token")
+            raise InvalidTokenError("Invalid access token")
         if payload.get("type") != "access":
-            raise ValueError("Invalid token type")
+            raise InvalidTokenError("Invalid token type")
         return uuid.UUID(payload["sub"])
 
     def decode_refresh_token(self, token: str) -> uuid.UUID:
@@ -60,11 +64,11 @@ class SecurityService:
                 algorithms=[self._config.algorithm],
             )
         except jwt.ExpiredSignatureError:
-            raise ValueError("Refresh token expired")
+            raise TokenExpiredError("Refresh token expired")
         except jwt.InvalidTokenError:
-            raise ValueError("Invalid refresh token")
+            raise InvalidTokenError("Invalid refresh token")
         if payload.get("type") != "refresh":
-            raise ValueError("Invalid token type")
+            raise InvalidTokenError("Invalid token type")
         return uuid.UUID(payload["sub"])
 
     @staticmethod

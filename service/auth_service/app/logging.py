@@ -1,8 +1,10 @@
 import logging
 
-def setup_logging(level: str = "Warning"):
+
+def setup_logging(level: str = "WARNING") -> None:
     logging.basicConfig(
-        level="INFO",
-        format="%(asctime)s | %(levelname)s | %(name)s | %(filename)s:%(lineno)d | %(message)s",
+        level=level.upper(),
+        format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
+    logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)

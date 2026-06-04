@@ -1,9 +1,10 @@
-from typing import AsyncIterable
+from collections.abc import AsyncIterable
 
-from app.infrastructure.db.factory import create_engine, create_sessionmaker
 from dishka import Provider, Scope, provide
-from app.config import Config
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
+
+from app.config import Config
+from app.infrastructure.db.factory import create_engine, create_sessionmaker
 
 
 class DBProvider(Provider):
@@ -18,7 +19,9 @@ class DBProvider(Provider):
         return create_sessionmaker(engine)
 
     @provide(scope=Scope.REQUEST)
-    async def provide_session(self, sessionmaker: async_sessionmaker[AsyncSession]) -> AsyncIterable[AsyncSession]:
+    async def provide_session(
+        self, sessionmaker: async_sessionmaker[AsyncSession]
+    ) -> AsyncIterable[AsyncSession]:
         async with sessionmaker() as session:
             try:
                 yield session

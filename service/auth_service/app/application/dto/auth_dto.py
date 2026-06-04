@@ -36,3 +36,11 @@ class LoginTokens:
 @dataclass(frozen=True)
 class LoginResult:
     access_token: str
+
+
+@dataclass(frozen=True)
+class UserResult:
+    id: uuid.UUID
+    email: str
+    is_active: bool
+    roles: list[str]
