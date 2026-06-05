@@ -54,6 +54,28 @@ services:
     networks:
       - internal
 
+  cart_service:
+    build:
+      context: ./service/cart_service
+      dockerfile: Dockerfile
+    env_file: ./service/cart_service/.env
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_NAME=cartdb
+      - REDIS_URL=${REDIS_URL}
+      - AUTH_SECRET_KEY=${AUTH_SECRET_KEY}
+      - PRODUCT_SERVICE_URL=http://product_service:8002
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      product_service:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - internal
+
   postgres:
     image: postgres:17-alpine
     environment:
@@ -99,6 +121,7 @@ services:
       - auth_service
       - user_service
       - product_service
+      - cart_service
     restart: unless-stopped
     networks:
       - internal
