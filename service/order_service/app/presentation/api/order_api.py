@@ -13,6 +13,7 @@ from app.presentation.schema.order_schema import (
     CreateOrderRequest,
     OrderItemResponse,
     OrderResponse,
+    PaymentConfirmedRequest,
     UpdateStatusRequest,
 )
 
@@ -79,6 +80,27 @@ async def update_status(
     _: CurrentUser = Depends(require_permission(P.ORDERS_UPDATE_ALL)),
 ) -> OrderResponse:
     result = await service.update_status(order_id, UpdateStatusCommand(status=data.status))
+    return _to_response(result)
+
+
+@router.post("/{order_id}/payment-confirmed", response_model=OrderResponse)
+@inject
+async def payment_confirmed(
+    order_id: uuid.UUID,
+    data: PaymentConfirmedRequest,
+    service: FromDishka[OrderService],
+) -> OrderResponse:
+    result = await service.update_status(order_id, UpdateStatusCommand(status="paid"))
+    return _to_response(result)
+
+
+@router.post("/{order_id}/payment-failed", response_model=OrderResponse)
+@inject
+async def payment_failed(
+    order_id: uuid.UUID,
+    service: FromDishka[OrderService],
+) -> OrderResponse:
+    result = await service.update_status(order_id, UpdateStatusCommand(status="cancelled"))
     return _to_response(result)
 
 

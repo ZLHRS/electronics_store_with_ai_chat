@@ -9,6 +9,10 @@ VALID_STATUSES = {
 }
 
 
+class PaymentConfirmedRequest(BaseModel):
+    payment_id: uuid.UUID
+
+
 class CreateOrderRequest(BaseModel):
     delivery_address: str = Field(min_length=1)
     payment_method: str = Field(min_length=1, max_length=64)

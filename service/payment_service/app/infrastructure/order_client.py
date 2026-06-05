@@ -38,7 +38,7 @@ class OrderServiceClient:
             id=uuid.UUID(data["id"]),
             user_id=uuid.UUID(data["user_id"]),
             status=data["status"],
-            total=Decimal(str(data["total"])),
+            total=Decimal(str(data["total_amount"])),
         )
 
     async def notify_payment_paid(self, order_id: uuid.UUID, payment_id: uuid.UUID) -> None:

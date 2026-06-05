@@ -19,6 +19,8 @@ Shop/
 ├── service/user_service/     # профиль, адреса, избранное, история, настройки
 ├── service/product_service/  # каталог товаров, категории, бренды, фильтрация
 ├── service/cart_service/     # корзина пользователя
+├── service/order_service/    # заказы
+├── service/payment_service/  # оплата и транзакции
 ├── nginx/                    # reverse proxy
 ├── postgres/init/            # SQL-скрипты инициализации БД
 ├── docker-compose.yml
@@ -33,14 +35,16 @@ Shop/
 
 ```
 Shop/
-├── docker-compose.yml          # postgres, redis, auth_service, user_service, product_service, cart_service, nginx
+├── docker-compose.yml          # postgres, redis, auth_service, user_service, product_service, cart_service, order_service, payment_service, nginx
 ├── .env                        # Docker-уровень: DB_HOST=postgres, REDIS_URL=redis://redis:6379, AUTH_SECRET_KEY=...
 ├── Makefile                    # команды (см. ниже)
 ├── postgres/
 │   └── init/
 │       ├── 01_create_userdb.sql     # создаёт БД userdb при первом старте postgres
 │       ├── 02_create_productdb.sql  # создаёт БД productdb при первом старте postgres
-│       └── 03_create_cartdb.sql     # создаёт БД cartdb при первом старте postgres
+│       ├── 03_create_cartdb.sql     # создаёт БД cartdb при первом старте postgres
+│       ├── 04_create_orderdb.sql    # создаёт БД orderdb при первом старте postgres
+│       └── 05_create_paymentdb.sql  # создаёт БД paymentdb при первом старте postgres
 └── service/
     ├── auth_service/           # порт 8000, БД: mydb
     │   ├── main.py             # точка входа uvicorn: from app.factory import create_app; app = create_app()
@@ -148,42 +152,117 @@ Shop/
     │       ├── integration/    # реальная БД — фильтрация по атрибутам
     │       ├── api/
     │       └── e2e/            # полный CRUD flow + категории/бренды
-    └── cart_service/           # порт 8003, БД: cartdb
+    ├── cart_service/           # порт 8003, БД: cartdb
+    │   ├── main.py
+    │   ├── app/
+    │   │   ├── factory.py
+    │   │   ├── config.py       # + ProductServiceConfig: PRODUCT_SERVICE_URL
+    │   │   ├── exceptions.py
+    │   │   ├── domain/
+    │   │   │   ├── entity/     # CartEntity, CartItemEntity, CartStatus
+    │   │   │   └── repo/       # CartRepository, CartItemRepository (Protocol)
+    │   │   ├── application/
+    │   │   │   ├── dto/        # AddItemCommand, UpdateItemCommand, CartResult, ProductSnapshot
+    │   │   │   └── service/
+    │   │   │       └── cart_service.py  # get_cart, add_item, update_item, remove_item, clear_cart
+    │   │   ├── infrastructure/
+    │   │   │   ├── db/
+    │   │   │   │   ├── model/  # CartModel, CartItemModel
+    │   │   │   │   └── repo/   # SQLAlchemyCartRepo, SQLAlchemyCartItemRepo
+    │   │   │   ├── di/         # DBProvider, RedisProvider, CartProvider (httpx.AsyncClient APP scope)
+    │   │   │   ├── mapper/     # cart_mapper.py
+    │   │   │   ├── jwt_service.py
+    │   │   │   ├── permission_cache.py
+    │   │   │   └── product_client.py   # ProductServiceClient — httpx GET /api/v1/products/{id}
+    │   │   └── presentation/
+    │   │       ├── api/
+    │   │       │   └── cart_api.py  # GET/POST/PATCH/DELETE /cart и /cart/items/{product_id}
+    │   │       ├── deps.py     # CurrentUser{id}, get_current_user (без permissions — корзина личная)
+    │   │       └── exception.py
+    │   ├── alembic/
+    │   │   ├── env.py
+    │   │   └── versions/       # partial unique index uq_carts_user_active WHERE status='active'
+    │   └── tests/
+    │       ├── conftest.py
+    │       ├── unit/           # FakeCartRepo, FakeCartItemRepo, FakeProductClient
+    │       ├── integration/    # реальная БД — корзина, позиции, количество
+    │       ├── api/
+    │       └── e2e/            # полный flow: добавление, обновление, удаление, очистка
+    ├── order_service/          # порт 8004, БД: orderdb
+    │   ├── main.py
+    │   ├── app/
+    │   │   ├── factory.py
+    │   │   ├── config.py       # + CartServiceConfig: CART_SERVICE_URL, ProductServiceConfig: PRODUCT_SERVICE_URL
+    │   │   ├── exceptions.py
+    │   │   ├── domain/
+    │   │   │   ├── entity/     # OrderEntity, OrderItemEntity, OrderStatus, CreateOrder, CreateOrderItem
+    │   │   │   ├── repo/       # OrderRepository (Protocol)
+    │   │   │   └── permissions.py  # class P: ORDERS_READ_OWN/ALL, ORDERS_UPDATE_OWN/ALL
+    │   │   ├── application/
+    │   │   │   ├── dto/        # CreateOrderCommand, UpdateStatusCommand, OrderResult, OrderItemResult
+    │   │   │   └── service/
+    │   │   │       └── order_service.py  # create_order, get_order, list_orders, cancel_order, update_status
+    │   │   ├── infrastructure/
+    │   │   │   ├── db/
+    │   │   │   │   ├── model/  # OrderModel, OrderItemModel
+    │   │   │   │   └── repo/   # SQLAlchemyOrderRepo
+    │   │   │   ├── di/         # DBProvider, RedisProvider, OrderProvider (два httpx.AsyncClient: cart + product)
+    │   │   │   ├── mapper/     # order_mapper.py
+    │   │   │   ├── jwt_service.py
+    │   │   │   ├── permission_cache.py
+    │   │   │   ├── cart_client.py     # CartServiceClient — GET/DELETE /api/v1/cart (с cookie access_token)
+    │   │   │   └── product_client.py  # ProductServiceClient — GET /api/v1/products/{id}
+    │   │   └── presentation/
+    │   │       ├── api/
+    │   │       │   └── order_api.py  # POST/GET /orders, GET/PATCH /orders/{id}, PATCH /orders/{id}/cancel, PATCH /orders/{id}/status
+    │   │       ├── deps.py     # CurrentUser{id, permissions}, get_current_user, require_permission()
+    │   │       └── exception.py
+    │   ├── alembic/
+    │   │   ├── env.py
+    │   │   └── versions/
+    │   └── tests/
+    │       ├── conftest.py
+    │       ├── unit/           # FakeOrderRepo, FakeCartClient, FakeProductClient
+    │       ├── integration/    # реальная БД — заказы, позиции, статусы
+    │       ├── api/
+    │       └── e2e/            # полный flow: создание заказа из корзины, отмена
+    └── payment_service/        # порт 8005, БД: paymentdb
         ├── main.py
         ├── app/
         │   ├── factory.py
-        │   ├── config.py       # + ProductServiceConfig: PRODUCT_SERVICE_URL
+        │   ├── config.py       # + OrderServiceConfig: ORDER_SERVICE_URL
         │   ├── exceptions.py
         │   ├── domain/
-        │   │   ├── entity/     # CartEntity, CartItemEntity, CartStatus
-        │   │   └── repo/       # CartRepository, CartItemRepository (Protocol)
+        │   │   ├── entity/     # PaymentEntity, PaymentEventEntity, PaymentStatus, PaymentProvider
+        │   │   └── repo/       # PaymentRepository, PaymentEventRepository (Protocol)
         │   ├── application/
-        │   │   ├── dto/        # AddItemCommand, UpdateItemCommand, CartResult, ProductSnapshot
+        │   │   ├── dto/        # CreatePaymentCommand, WebhookPayload, PaymentResult
         │   │   └── service/
-        │   │       └── cart_service.py  # get_cart, add_item, update_item, remove_item, clear_cart
+        │   │       └── payment_service.py  # create_payment, get_payment, refund_payment, handle_webhook
         │   ├── infrastructure/
         │   │   ├── db/
-        │   │   │   ├── model/  # CartModel, CartItemModel
-        │   │   │   └── repo/   # SQLAlchemyCartRepo, SQLAlchemyCartItemRepo
-        │   │   ├── di/         # DBProvider, RedisProvider, CartProvider (httpx.AsyncClient APP scope)
-        │   │   ├── mapper/     # cart_mapper.py
+        │   │   │   ├── model/  # PaymentModel, PaymentEventModel
+        │   │   │   └── repo/   # SQLAlchemyPaymentRepo, SQLAlchemyPaymentEventRepo
+        │   │   ├── di/         # DBProvider, RedisProvider, PaymentProvider (httpx.AsyncClient APP scope)
+        │   │   ├── mapper/     # payment_mapper.py
         │   │   ├── jwt_service.py
         │   │   ├── permission_cache.py
-        │   │   └── product_client.py   # ProductServiceClient — httpx GET /api/v1/products/{id}
+        │   │   └── order_client.py   # OrderServiceClient — GET /api/v1/orders/{id}, POST уведомления
         │   └── presentation/
         │       ├── api/
-        │       │   └── cart_api.py  # GET/POST/PATCH/DELETE /cart и /cart/items/{product_id}
-        │       ├── deps.py     # CurrentUser{id}, get_current_user (без permissions — корзина личная)
+        │       │   ├── payment_api.py   # POST/GET /payments, POST /payments/{id}/refund
+        │       │   └── webhook_api.py   # POST /webhooks/{kaspi,stripe,freedompay} — публичные, без JWT
+        │       ├── deps.py     # CurrentUser{id}, get_current_user (без permissions — платежи личные)
         │       └── exception.py
         ├── alembic/
         │   ├── env.py
-        │   └── versions/       # partial unique index uq_carts_user_active WHERE status='active'
+        │   └── versions/
         └── tests/
             ├── conftest.py
-            ├── unit/           # FakeCartRepo, FakeCartItemRepo, FakeProductClient
-            ├── integration/    # реальная БД — корзина, позиции, количество
+            ├── unit/           # FakePaymentRepo, FakePaymentEventRepo, FakeOrderClient
+            ├── integration/    # реальная БД — платёж, события, статусы
             ├── api/
-            └── e2e/            # полный flow: добавление, обновление, удаление, очистка
+            └── e2e/            # полный flow: создание → webhook → paid → уведомление order_service
 ```
 
 ## Ключевые архитектурные решения
@@ -193,12 +272,18 @@ Shop/
 - **User Service** = твой профиль: имя, адреса, избранное, история просмотров, настройки
 - **Product Service** = каталог: товары, категории, бренды, характеристики, фильтрация
 - **Cart Service** = корзина: позиции, количество, цена на момент добавления, итог
+- **Order Service** = заказы: оформление из корзины (snapshot имён товаров), статусы, история
+- **Payment Service** = оплата: создание платежей, webhook от провайдеров, возвраты
 
 Связь между сервисами: `user_profiles.auth_user_id` = `users.id` из auth_service. Профиль создаётся лениво при первом обращении к user_service.
 
 **Права в product_service и cart_service**: сервисы читают `permissions:user:{id}` из того же Redis, куда auth_service пишет после логина — без межсервисных HTTP-вызовов.
 
 **Межсервисный вызов в cart_service**: при добавлении товара cart_service делает `GET product_service/api/v1/products/{id}` через `ProductServiceClient` (httpx). Получает `price` и `status`. Если product_service недоступен при отдаче корзины — `product` snapshot в ответе будет `null`, но позиции остаются.
+
+**Межсервисные вызовы в order_service**: при создании заказа — `GET cart_service/api/v1/cart` (с cookie access_token) и `GET product_service/api/v1/products/{id}` для каждой позиции (проверка статуса, snapshot имени). После создания заказа — `DELETE cart_service/api/v1/cart` для очистки корзины. Два отдельных `httpx.AsyncClient` на APP scope.
+
+**Межсервисные вызовы в payment_service**: при создании платежа — `GET order_service/api/v1/orders/{id}` для проверки заказа (владелец, статус `pending_payment`, сумма). После webhook от провайдера — `POST order_service/api/v1/orders/{id}/payment-confirmed` или `/payment-failed`. Если order_service недоступен при уведомлении — ошибка логируется, но не пробрасывается (платёж уже сохранён).
 
 ### Auth flow
 - **Access token**: JWT `{sub: user_id, exp, type: "access"}` — без роли, без пермишенов
@@ -269,6 +354,28 @@ users → user_roles → roles → role_permissions → permissions
 | APP   | CartProvider | JWTConfig, JWTService, httpx.AsyncClient, ProductServiceClient |
 | REQUEST | DBProvider | AsyncSession |
 | REQUEST | CartProvider | CartRepo, CartItemRepo, CartService |
+
+### order_service
+
+| Scope | Провайдер | Что создаёт |
+|-------|-----------|-------------|
+| APP   | ConfigProvider | Config |
+| APP   | DBProvider | AsyncEngine, async_sessionmaker |
+| APP   | RedisProvider | redis.Redis, PermissionCache |
+| APP   | OrderProvider | JWTConfig, JWTService, httpx.AsyncClient (cart), httpx.AsyncClient (product), CartServiceClient, ProductServiceClient |
+| REQUEST | DBProvider | AsyncSession |
+| REQUEST | OrderProvider | OrderRepo, OrderService |
+
+### payment_service
+
+| Scope | Провайдер | Что создаёт |
+|-------|-----------|-------------|
+| APP   | ConfigProvider | Config |
+| APP   | DBProvider | AsyncEngine, async_sessionmaker |
+| APP   | RedisProvider | redis.Redis, PermissionCache |
+| APP   | PaymentProvider | JWTConfig, JWTService, httpx.AsyncClient, OrderServiceClient |
+| REQUEST | DBProvider | AsyncSession |
+| REQUEST | PaymentProvider | PaymentRepo, PaymentEventRepo, PaymentService |
 
 `httpx.AsyncClient` создаётся один раз на APP scope и закрывается через async generator provider при shutdown контейнера.
 
@@ -350,10 +457,28 @@ make cart-migration name=X # alembic revision --autogenerate -m "X"
 make cart-lint
 make cart-format
 
+# order_service
+make order-dev              # uvicorn --reload локально (порт 8004)
+make order-test             # pytest
+make order-migrate          # alembic upgrade head (локально)
+make order-migration name=X # alembic revision --autogenerate -m "X"
+make order-lint
+make order-format
+
+# payment_service
+make payment-dev              # uvicorn --reload локально (порт 8005)
+make payment-test             # pytest
+make payment-migrate          # alembic upgrade head (локально)
+make payment-migration name=X # alembic revision --autogenerate -m "X"
+make payment-lint
+make payment-format
+
 # Docker — отдельные сервисы
 make up-user / build-user / down-user
 make up-product / build-product / down-product
 make up-cart / build-cart / down-cart
+make up-order / build-order / down-order
+make up-payment / build-payment / down-payment
 ```
 
 ## ENV файлы
@@ -364,6 +489,8 @@ make up-cart / build-cart / down-cart
 | `service/user_service/.env` | Локальная разработка user_service (DB_HOST=localhost, DB_NAME=userdb) |
 | `service/product_service/.env` | Локальная разработка product_service (DB_HOST=localhost, DB_NAME=productdb) |
 | `service/cart_service/.env` | Локальная разработка cart_service (DB_HOST=localhost, DB_NAME=cartdb, PRODUCT_SERVICE_URL=http://localhost:8002) |
+| `service/order_service/.env` | Локальная разработка order_service (DB_HOST=localhost, DB_NAME=orderdb, CART_SERVICE_URL=http://localhost:8003, PRODUCT_SERVICE_URL=http://localhost:8002) |
+| `service/payment_service/.env` | Локальная разработка payment_service (DB_HOST=localhost, DB_NAME=paymentdb, ORDER_SERVICE_URL=http://localhost:8004) |
 | `.env` (корень) | Docker compose переменные (DB_HOST=postgres, REDIS_URL=redis://redis:6379, AUTH_SECRET_KEY=...) |
 
 В Docker `environment:` в `docker-compose.yml` переопределяет `env_file` — поэтому хосты сервисов не нужно менять в `.env`.
@@ -406,6 +533,12 @@ CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port
 
 # cart_service
 CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8003"]
+
+# order_service
+CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8004"]
+
+# payment_service
+CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8005"]
 ```
 
 При каждом старте контейнера: миграции (идемпотентно) → сервер.
@@ -418,6 +551,9 @@ CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port
 /api/v1/categories/* →  product_service:8002
 /api/v1/brands/*     →  product_service:8002
 /api/v1/cart/*       →  cart_service:8003
+/api/v1/orders/*     →  order_service:8004
+/api/v1/payments/*   →  payment_service:8005
+/api/v1/webhooks/*   →  payment_service:8005
 /*                   →  auth_service:8000
 ```
 
@@ -429,4 +565,6 @@ Init-скрипты запускаются postgres при **первом** ст
 docker compose exec postgres psql -U postgres -c "CREATE DATABASE userdb;"
 docker compose exec postgres psql -U postgres -c "CREATE DATABASE productdb;"
 docker compose exec postgres psql -U postgres -c "CREATE DATABASE cartdb;"
+docker compose exec postgres psql -U postgres -c "CREATE DATABASE orderdb;"
+docker compose exec postgres psql -U postgres -c "CREATE DATABASE paymentdb;"
 ```
