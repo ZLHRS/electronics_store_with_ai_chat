@@ -70,8 +70,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      product_service:
-        condition: service_started
     restart: unless-stopped
     networks:
       - internal
