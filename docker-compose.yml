@@ -74,6 +74,27 @@ services:
     networks:
       - internal
 
+  order_service:
+    build:
+      context: ./service/order_service
+      dockerfile: Dockerfile
+    env_file: ./service/order_service/.env
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_NAME=orderdb
+      - REDIS_URL=${REDIS_URL}
+      - AUTH_SECRET_KEY=${AUTH_SECRET_KEY}
+      - CART_SERVICE_URL=http://cart_service:8003
+      - PRODUCT_SERVICE_URL=http://product_service:8002
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - internal
+
   postgres:
     image: postgres:17-alpine
     environment:
@@ -120,6 +141,7 @@ services:
       - user_service
       - product_service
       - cart_service
+      - order_service
     restart: unless-stopped
     networks:
       - internal

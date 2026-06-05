@@ -81,73 +81,73 @@ Shop/
     │       ├── integration/    # реальная БД через db_session
     │       ├── api/            # httpx ASGITransport
     │       └── e2e/            # полный flow через httpx
-    └── user_service/           # порт 8001, БД: userdb
-        ├── main.py
-        ├── app/
-        │   ├── factory.py
-        │   ├── config.py       # JWTConfig вместо AuthConfig — только decode, без bcrypt
-        │   ├── exceptions.py
-        │   ├── domain/
-        │   │   ├── entity/     # UserProfileEntity, AddressEntity, FavoriteEntity, ViewHistoryEntity, PreferencesEntity
-        │   │   └── repo/       # Protocol-интерфейсы (5 репозиториев)
-        │   ├── application/
-        │   │   ├── dto/        # команды и результаты для всех доменов
-        │   │   └── service/    # UserProfileService, AddressService, FavoriteService, ViewHistoryService, PreferencesService
-        │   ├── infrastructure/
-        │   │   ├── db/
-        │   │   │   ├── model/  # UserProfileModel, AddressModel, FavoriteModel, ViewHistoryModel, PreferencesModel
-        │   │   │   └── repo/   # SQLAlchemy реализации
-        │   │   ├── di/         # Dishka провайдеры (DBProvider, RedisProvider, UserProvider)
-        │   │   ├── mapper/     # model → entity конвертеры
-        │   │   └── jwt_service.py  # только decode access token (без bcrypt, без сессий)
-        │   └── presentation/
-        │       ├── api/        # user_api, address_api, favorite_api, view_history_api, preferences_api
-        │       ├── deps.py     # CurrentUser{auth_user_id, profile_id}, get_current_user
-        │       └── exception.py
-        ├── alembic/
-        │   ├── env.py
-        │   └── versions/
-        └── tests/
-            ├── conftest.py
-            ├── unit/
-            ├── integration/
-            ├── api/
-            └── e2e/
-    └── product_service/        # порт 8002, БД: productdb
-        ├── main.py
-        ├── app/
-        │   ├── factory.py
-        │   ├── config.py       # JWTConfig — только decode; нет bcrypt
-        │   ├── exceptions.py
-        │   ├── domain/
-        │   │   ├── entity/     # ProductEntity, CategoryEntity, BrandEntity + вложенные Image/Attribute
-        │   │   ├── repo/       # Protocol-интерфейсы (ProductRepo, CategoryRepo, BrandRepo)
-        │   │   └── permissions.py  # class P: PRODUCTS_CREATE/UPDATE/DELETE
-        │   ├── application/
-        │   │   ├── dto/        # команды и результаты; ProductFilter — объект фильтрации
-        │   │   └── service/    # ProductService, CategoryService, BrandService
-        │   ├── infrastructure/
-        │   │   ├── db/
-        │   │   │   ├── model/  # ProductModel, CategoryModel, BrandModel, ProductImageModel, ProductAttributeModel
-        │   │   │   └── repo/   # SQLAlchemy реализации; product_repo содержит логику фильтрации
-        │   │   ├── di/         # Dishka провайдеры (DBProvider, RedisProvider, ProductProvider)
-        │   │   ├── mapper/     # model → entity конвертеры
-        │   │   ├── jwt_service.py       # только decode access token
-        │   │   ├── permission_cache.py  # read-only доступ к Redis ключам auth_service
-        │   │   └── slugify.py           # авто-генерация slug из названия
-        │   └── presentation/
-        │       ├── api/        # product_api, category_api, brand_api, health_api
-        │       ├── deps.py     # CurrentUser{id, permissions}, get_current_user, require_permission()
-        │       └── exception.py
-        ├── alembic/
-        │   ├── env.py
-        │   └── versions/
-        └── tests/
-            ├── conftest.py
-            ├── unit/           # FakeProductRepo + тесты ProductService и slugify
-            ├── integration/    # реальная БД — фильтрация по атрибутам
-            ├── api/
-            └── e2e/            # полный CRUD flow + категории/бренды
+    ├── user_service/           # порт 8001, БД: userdb
+    │   ├── main.py
+    │   ├── app/
+    │   │   ├── factory.py
+    │   │   ├── config.py       # JWTConfig вместо AuthConfig — только decode, без bcrypt
+    │   │   ├── exceptions.py
+    │   │   ├── domain/
+    │   │   │   ├── entity/     # UserProfileEntity, AddressEntity, FavoriteEntity, ViewHistoryEntity, PreferencesEntity
+    │   │   │   └── repo/       # Protocol-интерфейсы (5 репозиториев)
+    │   │   ├── application/
+    │   │   │   ├── dto/        # команды и результаты для всех доменов
+    │   │   │   └── service/    # UserProfileService, AddressService, FavoriteService, ViewHistoryService, PreferencesService
+    │   │   ├── infrastructure/
+    │   │   │   ├── db/
+    │   │   │   │   ├── model/  # UserProfileModel, AddressModel, FavoriteModel, ViewHistoryModel, PreferencesModel
+    │   │   │   │   └── repo/   # SQLAlchemy реализации
+    │   │   │   ├── di/         # Dishka провайдеры (DBProvider, RedisProvider, UserProvider)
+    │   │   │   ├── mapper/     # model → entity конвертеры
+    │   │   │   └── jwt_service.py  # только decode access token (без bcrypt, без сессий)
+    │   │   └── presentation/
+    │   │       ├── api/        # user_api, address_api, favorite_api, view_history_api, preferences_api
+    │   │       ├── deps.py     # CurrentUser{auth_user_id, profile_id}, get_current_user
+    │   │       └── exception.py
+    │   ├── alembic/
+    │   │   ├── env.py
+    │   │   └── versions/
+    │   └── tests/
+    │       ├── conftest.py
+    │       ├── unit/
+    │       ├── integration/
+    │       ├── api/
+    │       └── e2e/
+    ├── product_service/        # порт 8002, БД: productdb
+    │   ├── main.py
+    │   ├── app/
+    │   │   ├── factory.py
+    │   │   ├── config.py       # JWTConfig — только decode; нет bcrypt
+    │   │   ├── exceptions.py
+    │   │   ├── domain/
+    │   │   │   ├── entity/     # ProductEntity, CategoryEntity, BrandEntity + вложенные Image/Attribute
+    │   │   │   ├── repo/       # Protocol-интерфейсы (ProductRepo, CategoryRepo, BrandRepo)
+    │   │   │   └── permissions.py  # class P: PRODUCTS_CREATE/UPDATE/DELETE
+    │   │   ├── application/
+    │   │   │   ├── dto/        # команды и результаты; ProductFilter — объект фильтрации
+    │   │   │   └── service/    # ProductService, CategoryService, BrandService
+    │   │   ├── infrastructure/
+    │   │   │   ├── db/
+    │   │   │   │   ├── model/  # ProductModel, CategoryModel, BrandModel, ProductImageModel, ProductAttributeModel
+    │   │   │   │   └── repo/   # SQLAlchemy реализации; product_repo содержит логику фильтрации
+    │   │   │   ├── di/         # Dishka провайдеры (DBProvider, RedisProvider, ProductProvider)
+    │   │   │   ├── mapper/     # model → entity конвертеры
+    │   │   │   ├── jwt_service.py       # только decode access token
+    │   │   │   ├── permission_cache.py  # read-only доступ к Redis ключам auth_service
+    │   │   │   └── slugify.py           # авто-генерация slug из названия
+    │   │   └── presentation/
+    │   │       ├── api/        # product_api, category_api, brand_api, health_api
+    │   │       ├── deps.py     # CurrentUser{id, permissions}, get_current_user, require_permission()
+    │   │       └── exception.py
+    │   ├── alembic/
+    │   │   ├── env.py
+    │   │   └── versions/
+    │   └── tests/
+    │       ├── conftest.py
+    │       ├── unit/           # FakeProductRepo + тесты ProductService и slugify
+    │       ├── integration/    # реальная БД — фильтрация по атрибутам
+    │       ├── api/
+    │       └── e2e/            # полный CRUD flow + категории/бренды
     └── cart_service/           # порт 8003, БД: cartdb
         ├── main.py
         ├── app/

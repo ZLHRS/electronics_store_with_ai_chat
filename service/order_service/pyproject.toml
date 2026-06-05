@@ -1,0 +1,43 @@
+[project]
+name = "order-service"
+version = "0.1.0"
+description = "Order service for Shop"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "alembic>=1.18.4",
+    "asyncpg>=0.31.0",
+    "dishka>=1.10.1",
+    "fastapi>=0.136.1",
+    "httpx>=0.28.1",
+    "PyJWT>=2.8.0",
+    "pydantic-settings>=2.14.1",
+    "sqlalchemy>=2.0.49",
+    "uvicorn>=0.46.0",
+    "ruff>=0.15.15",
+    "fastapi-limiter<0.2.0",
+    "redis>=8.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.4.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+testpaths = ["tests"]
+pythonpath = ["."]

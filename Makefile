@@ -2,14 +2,17 @@ SERVICE = service/auth_service
 USER_SERVICE = service/user_service
 PRODUCT_SERVICE = service/product_service
 CART_SERVICE = service/cart_service
+ORDER_SERVICE = service/order_service
 
 .PHONY: up down build dev test lint format migrate migration seed init-db docker-seed docker-init-db set-admin \
         up-user build-user down-user \
         up-product build-product down-product \
         up-cart build-cart down-cart \
+        up-order build-order down-order \
         user-dev user-test user-lint user-format user-migrate user-migration \
         product-dev product-test product-lint product-format product-migrate product-migration \
-        cart-dev cart-test cart-lint cart-format cart-migrate cart-migration
+        cart-dev cart-test cart-lint cart-format cart-migrate cart-migration \
+        order-dev order-test order-lint order-format order-migrate order-migration
 
 up:
 	docker compose up -d
@@ -46,6 +49,15 @@ build-cart:
 
 down-cart:
 	docker compose stop cart_service
+
+up-order:
+	docker compose up -d order_service
+
+build-order:
+	docker compose up -d --build order_service
+
+down-order:
+	docker compose stop order_service
 
 dev:
 	cd $(SERVICE) && uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
@@ -143,3 +155,22 @@ cart-migrate:
 
 cart-migration:
 	cd $(CART_SERVICE) && uv run alembic revision --autogenerate -m "$(name)"
+
+# Order service
+order-dev:
+	cd $(ORDER_SERVICE) && uv run uvicorn main:app --reload --host 0.0.0.0 --port 8004
+
+order-test:
+	cd $(ORDER_SERVICE) && uv run pytest
+
+order-lint:
+	cd $(ORDER_SERVICE) && uv run ruff check .
+
+order-format:
+	cd $(ORDER_SERVICE) && uv run ruff format . && uv run ruff check --fix .
+
+order-migrate:
+	cd $(ORDER_SERVICE) && uv run alembic upgrade head
+
+order-migration:
+	cd $(ORDER_SERVICE) && uv run alembic revision --autogenerate -m "$(name)"
