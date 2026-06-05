@@ -95,6 +95,26 @@ services:
     networks:
       - internal
 
+  payment_service:
+    build:
+      context: ./service/payment_service
+      dockerfile: Dockerfile
+    env_file: ./service/payment_service/.env
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_NAME=paymentdb
+      - REDIS_URL=${REDIS_URL}
+      - AUTH_SECRET_KEY=${AUTH_SECRET_KEY}
+      - ORDER_SERVICE_URL=http://order_service:8004
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - internal
+
   postgres:
     image: postgres:17-alpine
     environment:
@@ -142,6 +162,7 @@ services:
       - product_service
       - cart_service
       - order_service
+      - payment_service
     restart: unless-stopped
     networks:
       - internal

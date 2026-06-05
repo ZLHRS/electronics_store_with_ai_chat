@@ -3,16 +3,19 @@ USER_SERVICE = service/user_service
 PRODUCT_SERVICE = service/product_service
 CART_SERVICE = service/cart_service
 ORDER_SERVICE = service/order_service
+PAYMENT_SERVICE = service/payment_service
 
 .PHONY: up down build dev test lint format migrate migration seed init-db docker-seed docker-init-db set-admin \
         up-user build-user down-user \
         up-product build-product down-product \
         up-cart build-cart down-cart \
         up-order build-order down-order \
+        up-payment build-payment down-payment \
         user-dev user-test user-lint user-format user-migrate user-migration \
         product-dev product-test product-lint product-format product-migrate product-migration \
         cart-dev cart-test cart-lint cart-format cart-migrate cart-migration \
-        order-dev order-test order-lint order-format order-migrate order-migration
+        order-dev order-test order-lint order-format order-migrate order-migration \
+        payment-dev payment-test payment-lint payment-format payment-migrate payment-migration
 
 up:
 	docker compose up -d
@@ -174,3 +177,31 @@ order-migrate:
 
 order-migration:
 	cd $(ORDER_SERVICE) && uv run alembic revision --autogenerate -m "$(name)"
+
+up-payment:
+	docker compose up -d payment_service
+
+build-payment:
+	docker compose up -d --build payment_service
+
+down-payment:
+	docker compose stop payment_service
+
+# Payment service
+payment-dev:
+	cd $(PAYMENT_SERVICE) && uv run uvicorn main:app --reload --host 0.0.0.0 --port 8005
+
+payment-test:
+	cd $(PAYMENT_SERVICE) && uv run pytest
+
+payment-lint:
+	cd $(PAYMENT_SERVICE) && uv run ruff check .
+
+payment-format:
+	cd $(PAYMENT_SERVICE) && uv run ruff format . && uv run ruff check --fix .
+
+payment-migrate:
+	cd $(PAYMENT_SERVICE) && uv run alembic upgrade head
+
+payment-migration:
+	cd $(PAYMENT_SERVICE) && uv run alembic revision --autogenerate -m "$(name)"
