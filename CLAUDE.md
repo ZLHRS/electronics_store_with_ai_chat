@@ -18,6 +18,7 @@ Shop/
 ├── service/auth_service/     # сервис аутентификации
 ├── service/user_service/     # профиль, адреса, избранное, история, настройки
 ├── service/product_service/  # каталог товаров, категории, бренды, фильтрация
+├── service/cart_service/     # корзина пользователя
 ├── nginx/                    # reverse proxy
 ├── postgres/init/            # SQL-скрипты инициализации БД
 ├── docker-compose.yml
@@ -32,13 +33,14 @@ Shop/
 
 ```
 Shop/
-├── docker-compose.yml          # postgres, redis, auth_service, user_service, product_service, nginx
+├── docker-compose.yml          # postgres, redis, auth_service, user_service, product_service, cart_service, nginx
 ├── .env                        # Docker-уровень: DB_HOST=postgres, REDIS_URL=redis://redis:6379, AUTH_SECRET_KEY=...
 ├── Makefile                    # команды (см. ниже)
 ├── postgres/
 │   └── init/
 │       ├── 01_create_userdb.sql     # создаёт БД userdb при первом старте postgres
-│       └── 02_create_productdb.sql  # создаёт БД productdb при первом старте postgres
+│       ├── 02_create_productdb.sql  # создаёт БД productdb при первом старте postgres
+│       └── 03_create_cartdb.sql     # создаёт БД cartdb при первом старте postgres
 └── service/
     ├── auth_service/           # порт 8000, БД: mydb
     │   ├── main.py             # точка входа uvicorn: from app.factory import create_app; app = create_app()
@@ -146,6 +148,42 @@ Shop/
             ├── integration/    # реальная БД — фильтрация по атрибутам
             ├── api/
             └── e2e/            # полный CRUD flow + категории/бренды
+    └── cart_service/           # порт 8003, БД: cartdb
+        ├── main.py
+        ├── app/
+        │   ├── factory.py
+        │   ├── config.py       # + ProductServiceConfig: PRODUCT_SERVICE_URL
+        │   ├── exceptions.py
+        │   ├── domain/
+        │   │   ├── entity/     # CartEntity, CartItemEntity, CartStatus
+        │   │   └── repo/       # CartRepository, CartItemRepository (Protocol)
+        │   ├── application/
+        │   │   ├── dto/        # AddItemCommand, UpdateItemCommand, CartResult, ProductSnapshot
+        │   │   └── service/
+        │   │       └── cart_service.py  # get_cart, add_item, update_item, remove_item, clear_cart
+        │   ├── infrastructure/
+        │   │   ├── db/
+        │   │   │   ├── model/  # CartModel, CartItemModel
+        │   │   │   └── repo/   # SQLAlchemyCartRepo, SQLAlchemyCartItemRepo
+        │   │   ├── di/         # DBProvider, RedisProvider, CartProvider (httpx.AsyncClient APP scope)
+        │   │   ├── mapper/     # cart_mapper.py
+        │   │   ├── jwt_service.py
+        │   │   ├── permission_cache.py
+        │   │   └── product_client.py   # ProductServiceClient — httpx GET /api/v1/products/{id}
+        │   └── presentation/
+        │       ├── api/
+        │       │   └── cart_api.py  # GET/POST/PATCH/DELETE /cart и /cart/items/{product_id}
+        │       ├── deps.py     # CurrentUser{id}, get_current_user (без permissions — корзина личная)
+        │       └── exception.py
+        ├── alembic/
+        │   ├── env.py
+        │   └── versions/       # partial unique index uq_carts_user_active WHERE status='active'
+        └── tests/
+            ├── conftest.py
+            ├── unit/           # FakeCartRepo, FakeCartItemRepo, FakeProductClient
+            ├── integration/    # реальная БД — корзина, позиции, количество
+            ├── api/
+            └── e2e/            # полный flow: добавление, обновление, удаление, очистка
 ```
 
 ## Ключевые архитектурные решения
@@ -154,10 +192,13 @@ Shop/
 - **Auth Service** = кто ты и можно ли тебе войти: логин, пароль, JWT, сессии, роли/пермишены
 - **User Service** = твой профиль: имя, адреса, избранное, история просмотров, настройки
 - **Product Service** = каталог: товары, категории, бренды, характеристики, фильтрация
+- **Cart Service** = корзина: позиции, количество, цена на момент добавления, итог
 
 Связь между сервисами: `user_profiles.auth_user_id` = `users.id` из auth_service. Профиль создаётся лениво при первом обращении к user_service.
 
-**Права в product_service**: сервис читает `permissions:user:{id}` из того же Redis, куда auth_service пишет после логина — без межсервисных HTTP-вызовов.
+**Права в product_service и cart_service**: сервисы читают `permissions:user:{id}` из того же Redis, куда auth_service пишет после логина — без межсервисных HTTP-вызовов.
+
+**Межсервисный вызов в cart_service**: при добавлении товара cart_service делает `GET product_service/api/v1/products/{id}` через `ProductServiceClient` (httpx). Получает `price` и `status`. Если product_service недоступен при отдаче корзины — `product` snapshot в ответе будет `null`, но позиции остаются.
 
 ### Auth flow
 - **Access token**: JWT `{sub: user_id, exp, type: "access"}` — без роли, без пермишенов
@@ -217,6 +258,19 @@ users → user_roles → roles → role_permissions → permissions
 | APP   | ProductProvider | JWTConfig, JWTService |
 | REQUEST | DBProvider | AsyncSession |
 | REQUEST | ProductProvider | ProductRepo, CategoryRepo, BrandRepo, ProductService, CategoryService, BrandService |
+
+### cart_service
+
+| Scope | Провайдер | Что создаёт |
+|-------|-----------|-------------|
+| APP   | ConfigProvider | Config |
+| APP   | DBProvider | AsyncEngine, async_sessionmaker |
+| APP   | RedisProvider | redis.Redis, PermissionCache |
+| APP   | CartProvider | JWTConfig, JWTService, httpx.AsyncClient, ProductServiceClient |
+| REQUEST | DBProvider | AsyncSession |
+| REQUEST | CartProvider | CartRepo, CartItemRepo, CartService |
+
+`httpx.AsyncClient` создаётся один раз на APP scope и закрывается через async generator provider при shutdown контейнера.
 
 Сессия: `provide_session` в `db_di.py` — commit при успехе, rollback при ошибке.  
 **Важно**: после `IntegrityError` в flush делать `await session.rollback()` до re-raise.
@@ -288,9 +342,18 @@ make product-migration name=X # alembic revision --autogenerate -m "X"
 make product-lint
 make product-format
 
+# cart_service
+make cart-dev              # uvicorn --reload локально (порт 8003)
+make cart-test             # pytest
+make cart-migrate          # alembic upgrade head (локально)
+make cart-migration name=X # alembic revision --autogenerate -m "X"
+make cart-lint
+make cart-format
+
 # Docker — отдельные сервисы
 make up-user / build-user / down-user
 make up-product / build-product / down-product
+make up-cart / build-cart / down-cart
 ```
 
 ## ENV файлы
@@ -300,6 +363,7 @@ make up-product / build-product / down-product
 | `service/auth_service/.env` | Локальная разработка auth_service (DB_HOST=localhost) |
 | `service/user_service/.env` | Локальная разработка user_service (DB_HOST=localhost, DB_NAME=userdb) |
 | `service/product_service/.env` | Локальная разработка product_service (DB_HOST=localhost, DB_NAME=productdb) |
+| `service/cart_service/.env` | Локальная разработка cart_service (DB_HOST=localhost, DB_NAME=cartdb, PRODUCT_SERVICE_URL=http://localhost:8002) |
 | `.env` (корень) | Docker compose переменные (DB_HOST=postgres, REDIS_URL=redis://redis:6379, AUTH_SECRET_KEY=...) |
 
 В Docker `environment:` в `docker-compose.yml` переопределяет `env_file` — поэтому хосты сервисов не нужно менять в `.env`.
@@ -339,6 +403,9 @@ CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port
 
 # product_service
 CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8002"]
+
+# cart_service
+CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8003"]
 ```
 
 При каждом старте контейнера: миграции (идемпотентно) → сервер.
@@ -350,6 +417,7 @@ CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port
 /api/v1/products/*   →  product_service:8002
 /api/v1/categories/* →  product_service:8002
 /api/v1/brands/*     →  product_service:8002
+/api/v1/cart/*       →  cart_service:8003
 /*                   →  auth_service:8000
 ```
 
@@ -360,4 +428,5 @@ Init-скрипты запускаются postgres при **первом** ст
 ```bash
 docker compose exec postgres psql -U postgres -c "CREATE DATABASE userdb;"
 docker compose exec postgres psql -U postgres -c "CREATE DATABASE productdb;"
+docker compose exec postgres psql -U postgres -c "CREATE DATABASE cartdb;"
 ```
