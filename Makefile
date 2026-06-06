@@ -67,12 +67,27 @@ dev:
 
 test:
 	cd $(SERVICE) && uv run pytest
+	cd $(USER_SERVICE) && uv run pytest
+	cd $(PRODUCT_SERVICE) && uv run pytest
+	cd $(CART_SERVICE) && uv run pytest
+	cd $(ORDER_SERVICE) && uv run pytest
+	cd $(PAYMENT_SERVICE) && uv run pytest
 
 lint:
 	cd $(SERVICE) && uv run ruff check .
+	cd $(USER_SERVICE) && uv run ruff check .
+	cd $(PRODUCT_SERVICE) && uv run ruff check .
+	cd $(CART_SERVICE) && uv run ruff check .
+	cd $(ORDER_SERVICE) && uv run ruff check .
+	cd $(PAYMENT_SERVICE) && uv run ruff check .
 
 format:
 	cd $(SERVICE) && uv run ruff format . && uv run ruff check --fix .
+	cd $(USER_SERVICE) && uv run ruff format . && uv run ruff check --fix .
+	cd $(PRODUCT_SERVICE) && uv run ruff format . && uv run ruff check --fix .
+	cd $(CART_SERVICE) && uv run ruff format . && uv run ruff check --fix .
+	cd $(ORDER_SERVICE) && uv run ruff format . && uv run ruff check --fix .
+	cd $(PAYMENT_SERVICE) && uv run ruff format . && uv run ruff check --fix .
 
 migrate:
 	cd $(SERVICE) && uv run alembic upgrade head
