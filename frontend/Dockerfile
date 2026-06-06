@@ -1,12 +1,10 @@
 FROM node:22-alpine AS deps
 WORKDIR /app
-RUN corepack enable
-COPY package.json pnpm-lock.yaml .npmrc ./
-RUN pnpm install --no-frozen-lockfile
+COPY package.json ./
+RUN npm install --legacy-peer-deps
 
 FROM node:22-alpine AS builder
 WORKDIR /app
-RUN corepack enable
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
