@@ -4,6 +4,7 @@ PRODUCT_SERVICE = service/product_service
 CART_SERVICE = service/cart_service
 ORDER_SERVICE = service/order_service
 PAYMENT_SERVICE = service/payment_service
+FRONTEND = frontend
 
 .PHONY: up down build dev test lint format migrate migration seed init-db docker-seed docker-init-db set-admin \
         up-user build-user down-user \
@@ -11,6 +12,7 @@ PAYMENT_SERVICE = service/payment_service
         up-cart build-cart down-cart \
         up-order build-order down-order \
         up-payment build-payment down-payment \
+        up-frontend build-frontend down-frontend frontend-dev frontend-build frontend-install \
         user-dev user-test user-lint user-format user-migrate user-migration \
         product-dev product-test product-lint product-format product-migrate product-migration \
         cart-dev cart-test cart-lint cart-format cart-migrate cart-migration \
@@ -201,6 +203,24 @@ build-payment:
 
 down-payment:
 	docker compose stop payment_service
+
+up-frontend:
+	docker compose up -d frontend
+
+build-frontend:
+	docker compose up -d --build frontend
+
+down-frontend:
+	docker compose stop frontend
+
+frontend-install:
+	cd $(FRONTEND) && pnpm install
+
+frontend-dev:
+	cd $(FRONTEND) && pnpm dev
+
+frontend-build:
+	cd $(FRONTEND) && pnpm build
 
 # Payment service
 payment-dev:
