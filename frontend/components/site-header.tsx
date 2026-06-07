@@ -1,14 +1,12 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
 import { useState } from "react"
 import { useTheme } from "next-themes"
 import {
   Search,
   ShoppingCart,
   Heart,
-  User,
   Menu,
   Sun,
   Moon,
@@ -28,13 +26,10 @@ import {
 } from "@/components/ui/sheet"
 import { categories } from "@/lib/data"
 import { useCart } from "@/components/cart-provider"
+import { useAuth } from "@/components/auth-provider"
+import { useFavorites } from "@/components/favorites-provider"
+import { UserMenu } from "@/components/user-menu"
 import { cn } from "@/lib/utils"
-
-const navLinks = [
-  { href: "/", label: "Главная" },
-  { href: "/orders", label: "Заказы" },
-  { href: "/profile", label: "Профиль" },
-]
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme()
@@ -53,14 +48,14 @@ function ThemeToggle() {
 }
 
 export function SiteHeader() {
-  const pathname = usePathname()
   const { count, setOpen } = useCart()
+  const { user } = useAuth()
+  const { count: favCount } = useFavorites()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/70 bg-background/85 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8">
-        {/* Mobile menu */}
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger
             render={
@@ -87,16 +82,47 @@ export function SiteHeader() {
                 </Link>
               ))}
               <div className="my-2 h-px bg-border" />
-              {navLinks.map((l) => (
+              <Link
+                href="/"
+                onClick={() => setMobileOpen(false)}
+                className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-accent"
+              >
+                Главная
+              </Link>
+              {user && (
+                <>
+                  <Link
+                    href="/orders"
+                    onClick={() => setMobileOpen(false)}
+                    className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-accent"
+                  >
+                    Заказы
+                  </Link>
+                  <Link
+                    href="/favorites"
+                    onClick={() => setMobileOpen(false)}
+                    className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-accent"
+                  >
+                    Избранное
+                  </Link>
+                  <Link
+                    href="/profile"
+                    onClick={() => setMobileOpen(false)}
+                    className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-accent"
+                  >
+                    Профиль
+                  </Link>
+                </>
+              )}
+              {!user && (
                 <Link
-                  key={l.href}
-                  href={l.href}
+                  href="/auth/login"
                   onClick={() => setMobileOpen(false)}
                   className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-accent"
                 >
-                  {l.label}
+                  Войти
                 </Link>
-              ))}
+              )}
             </nav>
           </SheetContent>
         </Sheet>
@@ -105,7 +131,6 @@ export function SiteHeader() {
           <Logo />
         </Link>
 
-        {/* Search */}
         <div className="relative ml-2 hidden flex-1 md:block">
           <Search className="absolute left-3.5 top-1/2 size-4.5 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -115,51 +140,51 @@ export function SiteHeader() {
         </div>
 
         <div className="ml-auto flex items-center gap-1">
-          <Button
-            variant="ghost"
-            className="hidden rounded-full text-muted-foreground lg:inline-flex"
-            render={<Link href="/orders" />}
-          >
-            <Package data-icon="inline-start" />
-            Заказы
-          </Button>
+          {user && (
+            <>
+              <Button
+                variant="ghost"
+                className="hidden rounded-full text-muted-foreground lg:inline-flex"
+                render={<Link href="/orders" />}
+              >
+                <Package data-icon="inline-start" />
+                Заказы
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative rounded-full"
+                aria-label="Избранное"
+                render={<Link href="/favorites" />}
+              >
+                <Heart />
+                {favCount > 0 && (
+                  <Badge className="absolute -right-0.5 -top-0.5 size-5 justify-center rounded-full p-0 text-[10px] tabular-nums">
+                    {favCount}
+                  </Badge>
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative rounded-full"
+                aria-label="Корзина"
+                onClick={() => setOpen(true)}
+              >
+                <ShoppingCart />
+                {count > 0 && (
+                  <Badge className="absolute -right-0.5 -top-0.5 size-5 justify-center rounded-full p-0 text-[10px] tabular-nums">
+                    {count}
+                  </Badge>
+                )}
+              </Button>
+            </>
+          )}
           <ThemeToggle />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-full"
-            aria-label="Избранное"
-            render={<Link href="/profile?tab=favorites" />}
-          >
-            <Heart />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative rounded-full"
-            aria-label="Корзина"
-            onClick={() => setOpen(true)}
-          >
-            <ShoppingCart />
-            {count > 0 && (
-              <Badge className="absolute -right-0.5 -top-0.5 size-5 justify-center rounded-full p-0 text-[10px] tabular-nums">
-                {count}
-              </Badge>
-            )}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-full"
-            aria-label="Профиль"
-            render={<Link href="/profile" />}
-          >
-            <User />
-          </Button>
+          <UserMenu />
         </div>
       </div>
 
-      {/* Secondary nav */}
       <div className="hidden border-t border-border/70 lg:block">
         <div className="mx-auto flex h-11 max-w-7xl items-center gap-1 px-4 sm:px-6 lg:px-8">
           <span className="mr-2 flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -178,7 +203,7 @@ export function SiteHeader() {
             </Link>
           ))}
           <Link
-            href="/?category=ai"
+            href="/?ai=1"
             className="ml-auto flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
           >
             <Sparkles className="size-4" />

@@ -7,6 +7,11 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  experimental: {
+    serverActions: {
+      allowedOrigins: ["localhost", "localhost:80"],
+    },
+  },
 }
 
 export default nextConfig

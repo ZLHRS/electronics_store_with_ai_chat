@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 import { formatPrice } from "@/lib/data"
 import type { Product } from "@/lib/types"
 import { useCart } from "@/components/cart-provider"
-import { toast } from "sonner"
+import { useFavorites } from "@/components/favorites-provider"
 
 const badgeMap: Record<string, { label: string; className: string }> = {
   hit: { label: "Хит", className: "bg-primary text-primary-foreground" },
@@ -20,6 +20,8 @@ const badgeMap: Record<string, { label: string; className: string }> = {
 
 export function ProductCard({ product, className }: { product: Product; className?: string }) {
   const { add } = useCart()
+  const { toggle, has } = useFavorites()
+  const isFav = has(product.id)
   const discount = product.oldPrice
     ? Math.round((1 - product.price / product.oldPrice) * 100)
     : 0
@@ -54,14 +56,17 @@ export function ProductCard({ product, className }: { product: Product; classNam
         <Button
           variant="secondary"
           size="icon"
-          aria-label="В избранное"
-          className="absolute right-3 top-3 size-9 rounded-full bg-background/80 opacity-0 backdrop-blur transition-opacity group-hover:opacity-100"
+          aria-label={isFav ? "Убрать из избранного" : "В избранное"}
+          className={cn(
+            "absolute right-3 top-3 size-9 rounded-full bg-background/80 backdrop-blur transition-opacity",
+            isFav ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+          )}
           onClick={(e) => {
             e.preventDefault()
-            toast.success("Добавлено в избранное", { description: product.name })
+            toggle(product.id, product.name)
           }}
         >
-          <Heart />
+          <Heart className={cn("size-4", isFav && "fill-destructive text-destructive")} />
         </Button>
       </Link>
 
@@ -90,10 +95,7 @@ export function ProductCard({ product, className }: { product: Product; classNam
             aria-label="В корзину"
             disabled={!product.inStock}
             className="size-10 shrink-0 rounded-xl"
-            onClick={() => {
-              add(product)
-              toast.success("Добавлено в корзину", { description: product.name })
-            }}
+            onClick={() => add(product)}
           >
             <ShoppingCart />
           </Button>

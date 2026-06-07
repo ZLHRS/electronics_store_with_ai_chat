@@ -2,7 +2,9 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
+import { AuthProvider } from '@/components/auth-provider'
 import { CartProvider } from '@/components/cart-provider'
+import { FavoritesProvider } from '@/components/favorites-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { SiteChrome } from '@/components/site-chrome'
 
@@ -39,10 +41,14 @@ export default function RootLayout({
     >
       <body className="font-sans antialiased">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          <CartProvider>
-            <SiteChrome>{children}</SiteChrome>
-            <Toaster position="top-center" />
-          </CartProvider>
+          <AuthProvider>
+            <CartProvider>
+              <FavoritesProvider>
+                <SiteChrome>{children}</SiteChrome>
+                <Toaster position="top-center" />
+              </FavoritesProvider>
+            </CartProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

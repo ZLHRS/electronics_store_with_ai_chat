@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils"
 import { products, formatPrice } from "@/lib/data"
 import type { Product } from "@/lib/types"
 import { useCart } from "@/components/cart-provider"
-import { toast } from "sonner"
 
 type Message = {
   id: number
@@ -77,10 +76,7 @@ function ChatProductCard({ product, onClose }: { product: Product; onClose: () =
           <Button
             size="sm"
             className="h-8 rounded-lg px-2.5 text-xs"
-            onClick={() => {
-              add(product)
-              toast.success("Добавлено в корзину", { description: product.name })
-            }}
+            onClick={() => add(product)}
           >
             <ShoppingCart data-icon="inline-start" />В корзину
           </Button>

@@ -1,7 +1,10 @@
 "use client"
 
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import type { Product, CartItem } from "@/lib/types"
+import { useAuth } from "@/components/auth-provider"
 
 type CartContextType = {
   items: CartItem[]
@@ -18,10 +21,22 @@ type CartContextType = {
 const CartContext = createContext<CartContextType | null>(null)
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const router = useRouter()
+  const { user } = useAuth()
   const [items, setItems] = useState<CartItem[]>([])
   const [isOpen, setOpen] = useState(false)
 
   const add = useCallback((product: Product, qty = 1) => {
+    if (!user) {
+      toast("Войдите в аккаунт", {
+        description: "Чтобы добавить товар в корзину, нужно авторизоваться",
+        action: {
+          label: "Войти",
+          onClick: () => router.push("/auth/login"),
+        },
+      })
+      return
+    }
     setItems((prev) => {
       const existing = prev.find((i) => i.product.id === product.id)
       if (existing) {
@@ -30,7 +45,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return [...prev, { product, qty }]
     })
     setOpen(true)
-  }, [])
+    toast.success("Добавлено в корзину", { description: product.name })
+  }, [user, router])
 
   const remove = useCallback((id: string) => {
     setItems((prev) => prev.filter((i) => i.product.id !== id))
