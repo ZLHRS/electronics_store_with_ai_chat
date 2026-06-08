@@ -82,7 +82,7 @@ function FilterControls({
       <Separator />
       <div>
         <p className="mb-3 text-sm font-medium">Цена до</p>
-        <Slider value={[price]} max={MAX_PRICE} min={10000} step={10000} onValueChange={(v) => setPrice(v[0])} />
+        <Slider value={[price]} max={MAX_PRICE} min={10000} step={10000} onValueChange={(v) => setPrice(Array.isArray(v) ? v[0] : (v as number))} />
         <p className="mt-3 text-sm text-muted-foreground">{formatPrice(price)}</p>
       </div>
       {brands.length > 0 && (
