@@ -32,7 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
 import { useAuth } from "@/components/auth-provider"
 import { formatPrice } from "@/lib/data"
 import {
@@ -57,6 +57,13 @@ import {
 const STATUS_LABELS: Record<string, string> = {
   active: "Активен",
   draft: "Черновик",
+  archived: "Архив",
+}
+
+const STATUS_FILTER_LABELS: Record<string, string> = {
+  all: "Все статусы",
+  active: "Активные",
+  draft: "Черновики",
   archived: "Архив",
 }
 
@@ -118,7 +125,7 @@ function ProductForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium">Статус</label>
           <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>{STATUS_LABELS[status] ?? status}</SelectTrigger>
             <SelectContent>
               <SelectItem value="active">Активен</SelectItem>
               <SelectItem value="draft">Черновик</SelectItem>
@@ -514,7 +521,7 @@ export default function AdminPage() {
                 />
               </div>
               <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
-                <SelectTrigger className="w-36 rounded-xl"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-36 rounded-xl">{STATUS_FILTER_LABELS[statusFilter]}</SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Все</SelectItem>
                   <SelectItem value="active">Активные</SelectItem>

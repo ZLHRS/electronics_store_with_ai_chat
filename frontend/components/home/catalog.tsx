@@ -15,7 +15,6 @@ import {
   SelectGroup,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from "@/components/ui/sheet"
 import { Field, FieldLabel } from "@/components/ui/field"
@@ -29,6 +28,12 @@ import type { Product } from "@/lib/types"
 const MAX_PRICE = 1500000
 
 type SortKey = "default" | "price-asc" | "price-desc"
+
+const SORT_LABELS: Record<SortKey, string> = {
+  default: "По умолчанию",
+  "price-asc": "Сначала дешевле",
+  "price-desc": "Сначала дороже",
+}
 
 function FilterControls({
   categories,
@@ -222,7 +227,7 @@ export function Catalog() {
 
           <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
             <SelectTrigger className="w-44 rounded-xl">
-              <SelectValue placeholder="Сортировка" />
+              {SORT_LABELS[sort]}
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
