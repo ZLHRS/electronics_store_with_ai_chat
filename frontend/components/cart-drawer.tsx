@@ -125,15 +125,10 @@ export function CartDrawer() {
                   <span>{formatPrice(subtotal + delivery)}</span>
                 </div>
               </div>
-              <div className="flex flex-col gap-2">
-                <Button size="lg" className="rounded-xl" onClick={() => setOpen(false)} render={<Link href="/checkout" />}>
-                  Оформить заказ
-                  <ArrowRight data-icon="inline-end" />
-                </Button>
-                <Button variant="outline" size="lg" className="rounded-xl" onClick={() => setOpen(false)} render={<Link href="/cart" />}>
-                  Перейти в корзину
-                </Button>
-              </div>
+              <Button size="lg" className="rounded-xl" onClick={() => setOpen(false)} render={<Link href="/checkout" />}>
+                Оформить заказ
+                <ArrowRight data-icon="inline-end" />
+              </Button>
             </SheetFooter>
           </>
         )}
