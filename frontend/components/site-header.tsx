@@ -10,7 +10,6 @@ import {
   Menu,
   Sun,
   Moon,
-  MapPin,
   Package,
   Sparkles,
 } from "lucide-react"
@@ -29,7 +28,6 @@ import { useCart } from "@/components/cart-provider"
 import { useAuth } from "@/components/auth-provider"
 import { useFavorites } from "@/components/favorites-provider"
 import { UserMenu } from "@/components/user-menu"
-import { cn } from "@/lib/utils"
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme()
@@ -190,32 +188,6 @@ export function SiteHeader() {
         </div>
       </div>
 
-      <div className="hidden border-t border-border/70 lg:block">
-        <div className="mx-auto flex h-11 max-w-7xl items-center gap-1 px-4 sm:px-6 lg:px-8">
-          <span className="mr-2 flex items-center gap-1.5 text-sm text-muted-foreground">
-            <MapPin className="size-4 text-primary" />
-            Алматы
-          </span>
-          {categories.map((c) => (
-            <Link
-              key={c.uuid}
-              href={`/?category=${c.slug}`}
-              className={cn(
-                "rounded-full px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
-              )}
-            >
-              {c.name}
-            </Link>
-          ))}
-          <Link
-            href="/?ai=1"
-            className="ml-auto flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
-          >
-            <Sparkles className="size-4" />
-            AI-подбор
-          </Link>
-        </div>
-      </div>
     </header>
   )
 }
