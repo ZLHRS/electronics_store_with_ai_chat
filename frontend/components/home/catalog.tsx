@@ -119,19 +119,24 @@ function FilterControls({
 
 export function Catalog() {
   const searchParams = useSearchParams()
-  const initialCat = searchParams.get("category")
 
   const [products, setProducts] = useState<Product[]>([])
   const [loadingProducts, setLoadingProducts] = useState(true)
   const [categories, setCategories] = useState<DisplayCategory[]>([])
 
-  const [selectedCats, setSelectedCats] = useState<string[]>(
-    initialCat ? [initialCat] : [],
-  )
+  const [selectedCats, setSelectedCats] = useState<string[]>(() => {
+    const cat = searchParams.get("category")
+    return cat ? [cat] : []
+  })
   const [selectedBrands, setSelectedBrands] = useState<string[]>([])
   const [price, setPrice] = useState(MAX_PRICE)
   const [inStockOnly, setInStockOnly] = useState(false)
   const [sort, setSort] = useState<SortKey>("default")
+
+  useEffect(() => {
+    const cat = searchParams.get("category")
+    setSelectedCats(cat ? [cat] : [])
+  }, [searchParams])
 
   useEffect(() => {
     Promise.all([fetchProducts(100), fetchCategories()]).then(([prods, cats]) => {
