@@ -1,10 +1,18 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import type { Product, CartItem } from "@/lib/types"
 import { useAuth } from "@/components/auth-provider"
+import {
+  apiGetCart,
+  apiAddItem,
+  apiUpdateItem,
+  apiRemoveItem,
+  apiClearCart,
+  type CartApi,
+} from "@/lib/api/cart"
 
 type CartContextType = {
   items: CartItem[]
@@ -20,44 +28,114 @@ type CartContextType = {
 
 const CartContext = createContext<CartContextType | null>(null)
 
+function toItems(cart: CartApi): CartItem[] {
+  return cart.items.map((item) => ({
+    product: {
+      id: item.product_id,
+      name: item.product?.name ?? "Товар",
+      price: parseFloat(item.unit_price),
+      image: item.product?.image_url ?? "",
+      images: [],
+      brand: "",
+      category: "",
+      inStock: item.product?.status === "active",
+      description: "",
+      specs: [],
+    },
+    qty: item.quantity,
+  }))
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
   const { user } = useAuth()
   const [items, setItems] = useState<CartItem[]>([])
   const [isOpen, setOpen] = useState(false)
+  const itemsRef = useRef<CartItem[]>([])
 
-  const add = useCallback((product: Product, qty = 1) => {
+  const sync = useCallback((cart: CartApi) => {
+    const next = toItems(cart)
+    itemsRef.current = next
+    setItems(next)
+  }, [])
+
+  const revert = useCallback(() => {
+    setItems(itemsRef.current)
+  }, [])
+
+  useEffect(() => {
+    if (!user) {
+      setItems([])
+      itemsRef.current = []
+      return
+    }
+    apiGetCart().then(sync).catch(() => {})
+  }, [user, sync])
+
+  const add = useCallback(async (product: Product, qty = 1) => {
     if (!user) {
       toast("Войдите в аккаунт", {
         description: "Чтобы добавить товар в корзину, нужно авторизоваться",
-        action: {
-          label: "Войти",
-          onClick: () => router.push("/auth/login"),
-        },
+        action: { label: "Войти", onClick: () => router.push("/auth/login") },
       })
       return
     }
+
     setItems((prev) => {
-      const existing = prev.find((i) => i.product.id === product.id)
-      if (existing) {
-        return prev.map((i) => (i.product.id === product.id ? { ...i, qty: i.qty + qty } : i))
-      }
-      return [...prev, { product, qty }]
+      const exists = prev.find((i) => i.product.id === product.id)
+      return exists
+        ? prev.map((i) => (i.product.id === product.id ? { ...i, qty: i.qty + qty } : i))
+        : [...prev, { product, qty }]
     })
     setOpen(true)
     toast.success("Добавлено в корзину", { description: product.name })
-  }, [user, router])
 
-  const remove = useCallback((id: string) => {
+    try {
+      sync(await apiAddItem(product.id, qty))
+    } catch {
+      revert()
+      toast.error("Не удалось добавить товар")
+    }
+  }, [user, router, sync, revert])
+
+  const remove = useCallback(async (id: string) => {
     setItems((prev) => prev.filter((i) => i.product.id !== id))
-  }, [])
+    try {
+      sync(await apiRemoveItem(id))
+    } catch {
+      revert()
+      toast.error("Не удалось удалить товар")
+    }
+  }, [sync, revert])
 
-  const setQty = useCallback((id: string, qty: number) => {
-    if (qty < 1) return
+  const setQty = useCallback(async (id: string, qty: number) => {
+    if (qty < 1) {
+      setItems((prev) => prev.filter((i) => i.product.id !== id))
+      try {
+        sync(await apiRemoveItem(id))
+      } catch {
+        revert()
+      }
+      return
+    }
     setItems((prev) => prev.map((i) => (i.product.id === id ? { ...i, qty } : i)))
-  }, [])
+    try {
+      sync(await apiUpdateItem(id, qty))
+    } catch {
+      revert()
+      toast.error("Ошибка обновления корзины")
+    }
+  }, [sync, revert])
 
-  const clear = useCallback(() => setItems([]), [])
+  const clear = useCallback(async () => {
+    setItems([])
+    try {
+      sync(await apiClearCart())
+    } catch {
+      revert()
+      toast.error("Не удалось очистить корзину")
+    }
+  }, [sync, revert])
 
   const count = items.reduce((acc, i) => acc + i.qty, 0)
   const subtotal = items.reduce((acc, i) => acc + i.product.price * i.qty, 0)
