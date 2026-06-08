@@ -54,13 +54,16 @@ async def _ensure_db_exists(maintenance_url: str, db_name: str) -> None:
 
 
 async def _seed(conn) -> None:
-    await conn.execute(text("""
+    await conn.execute(
+        text("""
         INSERT INTO roles (id, name, description) VALUES
         (gen_random_uuid(), 'admin',   'Full access'),
         (gen_random_uuid(), 'manager', 'Product and order management'),
         (gen_random_uuid(), 'user',    'Basic access')
-    """))
-    await conn.execute(text("""
+    """)
+    )
+    await conn.execute(
+        text("""
         INSERT INTO permissions (id, code, description) VALUES
         (gen_random_uuid(), 'users.read',        'Read users'),
         (gen_random_uuid(), 'users.create',      'Create users'),
@@ -76,26 +79,33 @@ async def _seed(conn) -> None:
         (gen_random_uuid(), 'orders.read.all',   'Read all orders'),
         (gen_random_uuid(), 'orders.update.own', 'Update own orders'),
         (gen_random_uuid(), 'orders.update.all', 'Update all orders')
-    """))
-    await conn.execute(text("""
+    """)
+    )
+    await conn.execute(
+        text("""
         INSERT INTO role_permissions (role_id, permission_id)
         SELECT r.id, p.id FROM roles r, permissions p WHERE r.name = 'admin'
-    """))
-    await conn.execute(text("""
+    """)
+    )
+    await conn.execute(
+        text("""
         INSERT INTO role_permissions (role_id, permission_id)
         SELECT r.id, p.id FROM roles r
         JOIN permissions p ON p.code IN (
             'products.read','products.create','products.update',
             'orders.read.own','orders.read.all','orders.update.own','orders.update.all'
         ) WHERE r.name = 'manager'
-    """))
-    await conn.execute(text("""
+    """)
+    )
+    await conn.execute(
+        text("""
         INSERT INTO role_permissions (role_id, permission_id)
         SELECT r.id, p.id FROM roles r
         JOIN permissions p ON p.code IN (
             'users.read','products.read','orders.read.own','orders.update.own'
         ) WHERE r.name = 'user'
-    """))
+    """)
+    )
 
 
 @pytest_asyncio.fixture(scope="session")

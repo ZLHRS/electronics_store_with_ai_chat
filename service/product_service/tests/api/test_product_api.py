@@ -24,7 +24,6 @@ async def test_create_product_unauthorized(client):
 @pytest.mark.asyncio
 async def test_create_product_authorized(client, app):
     import uuid
-    from decimal import Decimal
 
     user = CurrentUser(
         id=uuid.uuid4(),

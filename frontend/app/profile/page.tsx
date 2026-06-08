@@ -1,4 +1,7 @@
-import { redirect } from "next/navigation"
+"use client"
+
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import {
   User,
@@ -6,32 +9,31 @@ import {
   ShieldCheck,
   Package,
   ChevronRight,
-  Clock,
-  CheckCircle2,
-  Truck,
-  XCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { getCurrentUser } from "@/lib/auth"
+import { useAuth } from "@/components/auth-provider"
 import { LogoutButton } from "@/components/auth/logout-button"
-import { orders, formatPrice } from "@/lib/data"
 
-export const metadata = { title: "Профиль — Shop" }
+export default function ProfilePage() {
+  const { user, loading } = useAuth()
+  const router = useRouter()
 
-const statusConfig = {
-  processing: { label: "Обрабатывается", icon: Clock, color: "text-orange-500" },
-  shipped: { label: "В пути", icon: Truck, color: "text-blue-500" },
-  delivered: { label: "Доставлен", icon: CheckCircle2, color: "text-green-600" },
-  cancelled: { label: "Отменён", icon: XCircle, color: "text-destructive" },
-}
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/auth/login")
+    }
+  }, [loading, user, router])
 
-export default async function ProfilePage() {
-  const user = await getCurrentUser()
-
-  if (!user) {
-    redirect("/auth/login")
+  if (loading || !user) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+        <div className="flex items-center justify-center py-24">
+          <div className="size-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      </div>
+    )
   }
 
   const initials = user.email.slice(0, 2).toUpperCase()
@@ -46,7 +48,7 @@ export default async function ProfilePage() {
           <div className="flex size-16 items-center justify-center rounded-full bg-primary text-xl font-semibold text-primary-foreground">
             {initials}
           </div>
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="truncate font-semibold">{user.email}</p>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               {user.roles.map((role) => (
@@ -100,7 +102,6 @@ export default async function ProfilePage() {
           <div className="flex items-center gap-2">
             <Package className="size-5 text-primary" />
             <h2 className="font-semibold">Мои заказы</h2>
-            <span className="text-sm text-muted-foreground">· {orders.length}</span>
           </div>
           <Link href="/orders" className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-sm font-medium text-primary hover:bg-accent">
             Все заказы
@@ -108,30 +109,25 @@ export default async function ProfilePage() {
           </Link>
         </div>
         <Separator />
-        <div className="divide-y">
-          {orders.slice(0, 3).map((order) => {
-            const cfg = statusConfig[order.status]
-            const StatusIcon = cfg.icon
-            return (
-              <div key={order.id} className="flex items-center gap-4 px-6 py-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium">#{order.id}</p>
-                    <span className={`flex items-center gap-1 text-xs ${cfg.color}`}>
-                      <StatusIcon className="size-3" />
-                      {cfg.label}
-                    </span>
-                  </div>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {order.date} · {order.items.length} {order.items.length === 1 ? "товар" : "товара"}
-                  </p>
-                </div>
-                <p className="shrink-0 text-sm font-semibold">{formatPrice(order.total)}</p>
-              </div>
-            )
-          })}
+        <div className="px-6 py-8 text-center text-sm text-muted-foreground">
+          История заказов доступна на странице заказов
         </div>
       </div>
+
+      {isAdmin && (
+        <div className="mb-6">
+          <Link
+            href="/admin"
+            className="flex items-center justify-between rounded-2xl border bg-primary/5 px-6 py-4 transition-colors hover:bg-primary/10"
+          >
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="size-5 text-primary" />
+              <span className="font-medium text-primary">Панель администратора</span>
+            </div>
+            <ChevronRight className="size-4 text-primary" />
+          </Link>
+        </div>
+      )}
 
       <LogoutButton />
     </div>

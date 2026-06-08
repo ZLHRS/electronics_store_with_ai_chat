@@ -2,13 +2,9 @@ import { Suspense } from "react"
 import { HomeHero } from "@/components/home/hero"
 import { CategoryStrip } from "@/components/home/category-strip"
 import { PromoBanners } from "@/components/home/promo-banners"
-import { ProductRow } from "@/components/home/product-row"
+import { PopularProductsRow } from "@/components/home/popular-row"
 import { Catalog } from "@/components/home/catalog"
 import { Skeleton } from "@/components/ui/skeleton"
-import { products } from "@/lib/data"
-
-const popular = [...products].sort((a, b) => b.reviews - a.reviews).slice(0, 6)
-const deals = products.filter((p) => p.oldPrice).slice(0, 6)
 
 export default function HomePage() {
   return (
@@ -16,8 +12,7 @@ export default function HomePage() {
       <HomeHero />
       <CategoryStrip />
       <PromoBanners />
-      <ProductRow title="Популярные товары" description="Чаще всего покупают на этой неделе" products={popular} />
-      <ProductRow title="Выгодные предложения" description="Товары со скидкой" products={deals} />
+      <PopularProductsRow />
       <Suspense fallback={<CatalogSkeleton />}>
         <Catalog />
       </Suspense>

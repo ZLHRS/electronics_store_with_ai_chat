@@ -107,16 +107,12 @@ class OrderService:
         if order.user_id != user_id:
             raise OrderAccessDeniedError("Access denied")
         if order.status not in OrderStatus.CANCELLABLE:
-            raise OrderCancelForbiddenError(
-                f"Cannot cancel order with status '{order.status}'"
-            )
+            raise OrderCancelForbiddenError(f"Cannot cancel order with status '{order.status}'")
         order = await self._orders.update_status(order_id, OrderStatus.CANCELLED)
         logger.info("Order cancelled order_id=%s", order_id)
         return _to_result(order)
 
-    async def update_status(
-        self, order_id: uuid.UUID, command: UpdateStatusCommand
-    ) -> OrderResult:
+    async def update_status(self, order_id: uuid.UUID, command: UpdateStatusCommand) -> OrderResult:
         order = await self._orders.get_by_id(order_id)
         if order is None:
             raise OrderNotFoundError("Order not found")

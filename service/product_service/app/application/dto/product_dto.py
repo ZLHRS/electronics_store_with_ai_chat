@@ -50,8 +50,20 @@ class CreateCategoryCommand:
 
 
 @dataclass(frozen=True)
+class UpdateCategoryCommand:
+    name: str | None = None
+    slug: str | None = None
+
+
+@dataclass(frozen=True)
 class CreateBrandCommand:
     name: str
+    slug: str | None = None
+
+
+@dataclass(frozen=True)
+class UpdateBrandCommand:
+    name: str | None = None
     slug: str | None = None
 
 

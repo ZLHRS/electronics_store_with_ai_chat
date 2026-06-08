@@ -2,7 +2,7 @@ import uuid
 from dataclasses import dataclass
 
 from dishka.integrations.fastapi import FromDishka, inject
-from fastapi import Depends, HTTPException, Request
+from fastapi import HTTPException, Request
 
 from app.application.service.user_service import UserProfileService
 from app.config import JWTConfig

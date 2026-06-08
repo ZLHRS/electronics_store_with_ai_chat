@@ -31,10 +31,12 @@ async def create_order(
 ) -> OrderResponse:
     token = request.cookies.get(jwt_config.access_token_name, "")
     result = await service.create_order(
-        user.id, token, CreateOrderCommand(
+        user.id,
+        token,
+        CreateOrderCommand(
             delivery_address=data.delivery_address,
             payment_method=data.payment_method,
-        )
+        ),
     )
     return _to_response(result)
 

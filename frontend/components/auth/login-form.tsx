@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,7 +9,6 @@ import { Label } from "@/components/ui/label"
 import { apiLogin } from "@/lib/api/auth"
 
 export function LoginForm() {
-  const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -23,8 +21,7 @@ export function LoginForm() {
     setLoading(true)
     try {
       await apiLogin(email, password)
-      router.push("/")
-      router.refresh()
+      window.location.replace("/")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка входа")
     } finally {

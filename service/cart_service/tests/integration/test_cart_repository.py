@@ -39,7 +39,9 @@ async def test_add_and_get_cart_item(db_session):
 
     cart = await cart_repo.get_or_create_active(user_id)
     item = await item_repo.create(
-        CreateCartItem(cart_id=cart.id, product_id=product_id, quantity=2, unit_price=Decimal("50000"))
+        CreateCartItem(
+            cart_id=cart.id, product_id=product_id, quantity=2, unit_price=Decimal("50000")
+        )
     )
 
     assert item.quantity == 2
@@ -57,7 +59,9 @@ async def test_update_quantity(db_session):
 
     cart = await cart_repo.get_or_create_active(user_id)
     item = await item_repo.create(
-        CreateCartItem(cart_id=cart.id, product_id=uuid.uuid4(), quantity=1, unit_price=Decimal("10000"))
+        CreateCartItem(
+            cart_id=cart.id, product_id=uuid.uuid4(), quantity=1, unit_price=Decimal("10000")
+        )
     )
     updated = await item_repo.update_quantity(item.id, 5)
 
@@ -72,7 +76,9 @@ async def test_delete_by_cart_clears_items(db_session):
 
     cart = await cart_repo.get_or_create_active(user_id)
     await item_repo.create(
-        CreateCartItem(cart_id=cart.id, product_id=uuid.uuid4(), quantity=1, unit_price=Decimal("5000"))
+        CreateCartItem(
+            cart_id=cart.id, product_id=uuid.uuid4(), quantity=1, unit_price=Decimal("5000")
+        )
     )
     await item_repo.delete_by_cart(cart.id)
 

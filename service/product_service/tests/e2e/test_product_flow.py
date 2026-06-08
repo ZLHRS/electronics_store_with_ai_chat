@@ -23,13 +23,13 @@ def _make_access_token(user_id: uuid.UUID, permissions: list[str]) -> str:
 
 @pytest.mark.asyncio
 async def test_full_product_crud_flow(client, app):
-    from unittest.mock import AsyncMock
 
-    from app.infrastructure.permission_cache import PermissionCache
-    from app.presentation.deps import get_current_user, CurrentUser
+    from app.presentation.deps import CurrentUser, get_current_user
 
     user_id = uuid.uuid4()
-    user = CurrentUser(id=user_id, permissions=frozenset(["products.create", "products.update", "products.delete"]))
+    user = CurrentUser(
+        id=user_id, permissions=frozenset(["products.create", "products.update", "products.delete"])
+    )
     app.dependency_overrides[get_current_user] = lambda: user
 
     try:

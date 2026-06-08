@@ -40,7 +40,7 @@ async def list_products(
     limit: int = Query(default=20, ge=1, le=100),
 ) -> ProductListResponse:
     attributes = {
-        k[len("attribute_"):]: v
+        k[len("attribute_") :]: v
         for k, v in request.query_params.items()
         if k.startswith("attribute_")
     }
@@ -65,7 +65,9 @@ async def list_products(
     )
 
 
-@router.get("/{product_id}", response_model=ProductResponse, dependencies=[Depends(products_read_limiter)])
+@router.get(
+    "/{product_id}", response_model=ProductResponse, dependencies=[Depends(products_read_limiter)]
+)
 @inject
 async def get_product(
     product_id: uuid.UUID,
@@ -169,7 +171,9 @@ def _to_response(result) -> ProductResponse:
         created_at=result.created_at,
         updated_at=result.updated_at,
         images=[
-            ImageResponse(id=i.id, product_id=i.product_id, image_url=i.image_url, sort_order=i.sort_order)
+            ImageResponse(
+                id=i.id, product_id=i.product_id, image_url=i.image_url, sort_order=i.sort_order
+            )
             for i in result.images
         ],
         attributes=[

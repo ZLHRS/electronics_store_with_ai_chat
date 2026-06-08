@@ -7,7 +7,6 @@ import pytest
 from app.application.dto.product_dto import (
     AttributeItemCommand,
     CreateProductCommand,
-    ImageItemCommand,
 )
 from app.application.service.product_service import ProductService
 from app.domain.entity.product_entity import (
@@ -115,7 +114,9 @@ async def test_create_product_slug_conflict():
     await service.create_product(CreateProductCommand(name="Gaming PC", price=Decimal("350000")))
 
     with pytest.raises(SlugAlreadyExistsError):
-        await service.create_product(CreateProductCommand(name="Gaming PC", price=Decimal("400000")))
+        await service.create_product(
+            CreateProductCommand(name="Gaming PC", price=Decimal("400000"))
+        )
 
 
 @pytest.mark.asyncio

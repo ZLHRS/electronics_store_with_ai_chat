@@ -38,7 +38,7 @@ htmlcov/
 .vscode/
 *.iml
 .claude/
-
+package-lock.json
 # OS
 .DS_Store
 Thumbs.db

@@ -117,7 +117,9 @@ def _to_result(product) -> ProductResult:
         created_at=product.created_at,
         updated_at=product.updated_at,
         images=[
-            ImageResult(id=i.id, product_id=i.product_id, image_url=i.image_url, sort_order=i.sort_order)
+            ImageResult(
+                id=i.id, product_id=i.product_id, image_url=i.image_url, sort_order=i.sort_order
+            )
             for i in product.images
         ],
         attributes=[

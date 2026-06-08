@@ -7,7 +7,8 @@ import { Sparkles, X, ArrowUp, ShoppingCart, Star, Bot } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { products, formatPrice } from "@/lib/data"
+import { formatPrice } from "@/lib/data"
+import { fetchProducts } from "@/lib/api/products"
 import type { Product } from "@/lib/types"
 import { useCart } from "@/components/cart-provider"
 
@@ -32,14 +33,13 @@ const greeting: Message = {
   text: "Привет! Я AI-ассистент Shop. Опишите, что вы ищете, а я подберу лучшие варианты под ваш бюджет и задачи.",
 }
 
-function pickProducts(query: string): Product[] {
+function pickProducts(query: string, allProducts: Product[]): Product[] {
   const q = query.toLowerCase()
-  let filtered = products.filter((p) => p.inStock)
+  let filtered = allProducts.filter((p) => p.inStock)
   if (q.includes("ноут")) filtered = filtered.filter((p) => p.category === "laptops")
   else if (q.includes("пк") || q.includes("cs2") || q.includes("игров")) filtered = filtered.filter((p) => p.category === "gaming")
   else if (q.includes("смартфон") || q.includes("телефон")) filtered = filtered.filter((p) => p.category === "smartphones")
   else if (q.includes("маме") || q.includes("подарок")) filtered = filtered.filter((p) => ["wearables", "home", "audio"].includes(p.category))
-  else filtered = [...filtered].sort((a, b) => b.reviews - a.reviews)
   return filtered.slice(0, 2)
 }
 
@@ -67,10 +67,12 @@ function ChatProductCard({ product, onClose }: { product: Product; onClose: () =
         <Link href={`/product/${product.id}`} onClick={onClose} className="line-clamp-2 text-xs font-medium leading-snug hover:text-primary">
           {product.name}
         </Link>
-        <div className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
-          <Star className="size-3 fill-warning text-warning" />
-          {product.rating} · {product.reviews}
-        </div>
+        {product.rating != null && (
+          <div className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
+            <Star className="size-3 fill-warning text-warning" />
+            {product.rating}
+          </div>
+        )}
         <div className="mt-auto flex items-center justify-between gap-2 pt-1">
           <span className="text-sm font-semibold">{formatPrice(product.price)}</span>
           <Button
@@ -91,8 +93,15 @@ export function AiAssistant() {
   const [messages, setMessages] = useState<Message[]>([greeting])
   const [input, setInput] = useState("")
   const [typing, setTyping] = useState(false)
+  const [allProducts, setAllProducts] = useState<Product[]>([])
   const scrollRef = useRef<HTMLDivElement>(null)
   const idRef = useRef(1)
+
+  useEffect(() => {
+    if (open && allProducts.length === 0) {
+      fetchProducts(100).then(setAllProducts)
+    }
+  }, [open])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
@@ -115,7 +124,7 @@ export function AiAssistant() {
       setTyping(false)
       setMessages((prev) => [
         ...prev,
-        { id: idRef.current++, role: "assistant", text: replyText(value), products: pickProducts(value) },
+        { id: idRef.current++, role: "assistant", text: replyText(value), products: pickProducts(value, allProducts) },
       ])
     }, 1100)
   }

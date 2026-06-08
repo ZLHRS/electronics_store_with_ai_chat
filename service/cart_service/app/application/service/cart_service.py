@@ -36,7 +36,9 @@ class CartService:
 
     async def get_cart(self, user_id: uuid.UUID) -> CartResult:
         cart = await self._carts.get_or_create_active(user_id)
-        return await self._build_result(cart.id, cart.user_id, cart.status, cart.created_at, cart.updated_at)
+        return await self._build_result(
+            cart.id, cart.user_id, cart.status, cart.created_at, cart.updated_at
+        )
 
     async def add_item(self, user_id: uuid.UUID, command: AddItemCommand) -> CartResult:
         if command.quantity < 1:
@@ -53,7 +55,9 @@ class CartService:
         existing = await self._items.get_by_cart_and_product(cart.id, command.product_id)
         if existing:
             await self._items.update_quantity(existing.id, existing.quantity + command.quantity)
-            logger.info("Cart item quantity increased cart_id=%s product_id=%s", cart.id, command.product_id)
+            logger.info(
+                "Cart item quantity increased cart_id=%s product_id=%s", cart.id, command.product_id
+            )
         else:
             await self._items.create(
                 CreateCartItem(
@@ -65,7 +69,9 @@ class CartService:
             )
             logger.info("Cart item added cart_id=%s product_id=%s", cart.id, command.product_id)
 
-        return await self._build_result(cart.id, cart.user_id, cart.status, cart.created_at, cart.updated_at)
+        return await self._build_result(
+            cart.id, cart.user_id, cart.status, cart.created_at, cart.updated_at
+        )
 
     async def update_item(
         self, user_id: uuid.UUID, product_id: uuid.UUID, command: UpdateItemCommand
@@ -79,9 +85,16 @@ class CartService:
             raise CartItemNotFoundError("Item not found in cart")
 
         await self._items.update_quantity(item.id, command.quantity)
-        logger.info("Cart item updated cart_id=%s product_id=%s qty=%s", cart.id, product_id, command.quantity)
+        logger.info(
+            "Cart item updated cart_id=%s product_id=%s qty=%s",
+            cart.id,
+            product_id,
+            command.quantity,
+        )
 
-        return await self._build_result(cart.id, cart.user_id, cart.status, cart.created_at, cart.updated_at)
+        return await self._build_result(
+            cart.id, cart.user_id, cart.status, cart.created_at, cart.updated_at
+        )
 
     async def remove_item(self, user_id: uuid.UUID, product_id: uuid.UUID) -> CartResult:
         cart = await self._carts.get_or_create_active(user_id)
@@ -92,14 +105,18 @@ class CartService:
         await self._items.delete(item.id)
         logger.info("Cart item removed cart_id=%s product_id=%s", cart.id, product_id)
 
-        return await self._build_result(cart.id, cart.user_id, cart.status, cart.created_at, cart.updated_at)
+        return await self._build_result(
+            cart.id, cart.user_id, cart.status, cart.created_at, cart.updated_at
+        )
 
     async def clear_cart(self, user_id: uuid.UUID) -> CartResult:
         cart = await self._carts.get_or_create_active(user_id)
         await self._items.delete_by_cart(cart.id)
         logger.info("Cart cleared cart_id=%s", cart.id)
 
-        return await self._build_result(cart.id, cart.user_id, cart.status, cart.created_at, cart.updated_at)
+        return await self._build_result(
+            cart.id, cart.user_id, cart.status, cart.created_at, cart.updated_at
+        )
 
     async def _build_result(
         self,

@@ -1,6 +1,9 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Sparkles, Truck, ShieldCheck, CreditCard, Headset } from "lucide-react"
-import { categories } from "@/lib/data"
+import { fetchCategories, type DisplayCategory } from "@/lib/api/categories"
 
 const features = [
   { icon: Truck, title: "Быстрая доставка", text: "По всему Казахстану за 1–3 дня" },
@@ -15,6 +18,12 @@ const columns = [
 ]
 
 export function SiteFooter() {
+  const [categories, setCategories] = useState<DisplayCategory[]>([])
+
+  useEffect(() => {
+    fetchCategories().then(setCategories)
+  }, [])
+
   return (
     <footer className="mt-20 border-t bg-card">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -49,8 +58,8 @@ export function SiteFooter() {
             <p className="mb-4 text-sm font-medium">Категории</p>
             <ul className="flex flex-col gap-2.5">
               {categories.slice(0, 5).map((c) => (
-                <li key={c.id}>
-                  <Link href={`/?category=${c.id}`} className="text-sm text-muted-foreground hover:text-foreground">
+                <li key={c.uuid}>
+                  <Link href={`/?category=${c.slug}`} className="text-sm text-muted-foreground hover:text-foreground">
                     {c.name}
                   </Link>
                 </li>

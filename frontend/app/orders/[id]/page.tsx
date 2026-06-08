@@ -1,16 +1,37 @@
 "use client"
 
-import { use } from "react"
+import { use, useEffect, useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
-import { ArrowLeft, Clock, CheckCircle2, Truck, XCircle, Package, Check, Loader2 } from "lucide-react"
+import { ArrowLeft, Clock, CheckCircle2, Truck, XCircle, Package, Check, Loader2, CreditCard } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { useAuth } from "@/components/auth-provider"
-import { orders, formatPrice } from "@/lib/data"
+import {
+  fetchOrderById,
+  cancelOrder,
+  buildTimeline,
+  formatOrderDate,
+  type FrontendOrder,
+  type ApiOrderStatus,
+} from "@/lib/api/orders"
+import { formatPrice } from "@/lib/data"
 import { cn } from "@/lib/utils"
-import type { OrderStatus } from "@/lib/types"
 
-const statusConfig: Record<OrderStatus, { label: string; icon: React.ElementType; badgeClass: string }> = {
+const statusConfig: Record<ApiOrderStatus, { label: string; icon: React.ElementType; badgeClass: string }> = {
+  created: {
+    label: "Создан",
+    icon: Clock,
+    badgeClass: "bg-muted text-muted-foreground",
+  },
+  pending_payment: {
+    label: "Ожидает оплаты",
+    icon: CreditCard,
+    badgeClass: "bg-yellow-50 text-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-400",
+  },
+  paid: {
+    label: "Оплачен",
+    icon: CheckCircle2,
+    badgeClass: "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400",
+  },
   processing: {
     label: "Обрабатывается",
     icon: Clock,
@@ -33,16 +54,29 @@ const statusConfig: Record<OrderStatus, { label: string; icon: React.ElementType
   },
 }
 
-function pluralItems(n: number) {
-  if (n === 1) return "шт."
-  return "шт."
-}
-
 export default function OrderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
-  const { user, loading } = useAuth()
+  const { user, loading: authLoading } = useAuth()
+  const [order, setOrder] = useState<FrontendOrder | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [cancelling, setCancelling] = useState(false)
 
-  if (loading) {
+  useEffect(() => {
+    if (!user) return
+    fetchOrderById(id)
+      .then(setOrder)
+      .finally(() => setLoading(false))
+  }, [id, user])
+
+  async function handleCancel() {
+    if (!order) return
+    setCancelling(true)
+    const updated = await cancelOrder(order.id)
+    if (updated) setOrder(updated)
+    setCancelling(false)
+  }
+
+  if (authLoading || loading) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="flex items-center justify-center py-24">
@@ -68,8 +102,6 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
       </div>
     )
   }
-
-  const order = orders.find((o) => o.id === id)
 
   if (!order) {
     return (
@@ -97,8 +129,10 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
 
   const cfg = statusConfig[order.status]
   const StatusIcon = cfg.icon
-  const itemsTotal = order.items.reduce((sum, { product, qty }) => sum + product.price * qty, 0)
-  const totalQty = order.items.reduce((sum, { qty }) => sum + qty, 0)
+  const timeline = buildTimeline(order.status)
+  const itemsTotal = order.items.reduce((sum, i) => sum + i.total_price, 0)
+  const totalQty = order.items.reduce((sum, i) => sum + i.quantity, 0)
+  const canCancel = order.status === "created" || order.status === "pending_payment"
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
@@ -112,8 +146,8 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
 
       <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Заказ #{order.id}</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">{order.date}</p>
+          <h1 className="text-2xl font-semibold tracking-tight">Заказ #{order.id.slice(0, 8)}</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">{formatOrderDate(order.created_at)}</p>
         </div>
         <span
           className={cn(
@@ -131,10 +165,9 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
           Статус доставки
         </h2>
         <div className="flex flex-col">
-          {order.timeline.map((step, i) => {
-            const isLast = i === order.timeline.length - 1
+          {timeline.map((step, i) => {
+            const isLast = i === timeline.length - 1
             const isCancelStep = order.status === "cancelled" && isLast
-            const isActiveStep = step.done && !isLast && !order.timeline[i + 1]?.done
 
             return (
               <div key={i} className="flex gap-3">
@@ -171,17 +204,22 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
                       "text-sm font-medium leading-6",
                       isCancelStep && "text-destructive",
                       !step.done && "text-muted-foreground",
-                      isActiveStep && "text-primary",
                     )}
                   >
                     {step.label}
                   </p>
-                  <p className="text-xs text-muted-foreground">{step.date}</p>
                 </div>
               </div>
             )
           })}
         </div>
+      </div>
+
+      <div className="mb-4 rounded-2xl border bg-card p-4 text-sm">
+        <p className="mb-1 text-xs text-muted-foreground">Адрес доставки</p>
+        <p className="font-medium">{order.delivery_address}</p>
+        <p className="mt-2 text-xs text-muted-foreground">Способ оплаты</p>
+        <p className="font-medium capitalize">{order.payment_method}</p>
       </div>
 
       <div className="rounded-2xl border bg-card">
@@ -190,27 +228,21 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
         </div>
         <Separator />
         <div className="divide-y">
-          {order.items.map(({ product, qty }) => (
-            <div key={product.id} className="flex items-center gap-4 px-5 py-4">
-              <div className="relative size-16 shrink-0 overflow-hidden rounded-xl bg-muted/60">
-                <Image
-                  src={product.image || "/placeholder.svg"}
-                  alt={product.name}
-                  fill
-                  sizes="64px"
-                  className="object-contain p-2"
-                />
+          {order.items.map((item) => (
+            <div key={item.id} className="flex items-center gap-4 px-5 py-4">
+              <div className="flex size-16 shrink-0 items-center justify-center rounded-xl bg-muted/60">
+                <Package className="size-6 text-muted-foreground/50" />
               </div>
               <div className="min-w-0 flex-1">
                 <Link
-                  href={`/product/${product.id}`}
+                  href={`/product/${item.product_id}`}
                   className="line-clamp-2 text-sm font-medium hover:text-primary"
                 >
-                  {product.name}
+                  {item.product_name}
                 </Link>
-                <p className="mt-0.5 text-xs text-muted-foreground">{qty} {pluralItems(qty)}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{item.quantity} шт.</p>
               </div>
-              <p className="shrink-0 text-sm font-semibold">{formatPrice(product.price * qty)}</p>
+              <p className="shrink-0 text-sm font-semibold">{formatPrice(item.total_price)}</p>
             </div>
           ))}
         </div>
@@ -227,10 +259,20 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
           <Separator />
           <div className="flex justify-between text-base font-semibold">
             <span>Итого</span>
-            <span>{formatPrice(order.total)}</span>
+            <span>{formatPrice(order.total_amount)}</span>
           </div>
         </div>
       </div>
+
+      {canCancel && (
+        <button
+          onClick={handleCancel}
+          disabled={cancelling}
+          className="mt-4 w-full rounded-xl border border-destructive/50 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/5 disabled:opacity-50"
+        >
+          {cancelling ? "Отменяем..." : "Отменить заказ"}
+        </button>
+      )}
     </div>
   )
 }

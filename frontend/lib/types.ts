@@ -6,13 +6,14 @@ export type Category = {
 
 export type Product = {
   id: string
+  slug?: string
   name: string
   brand: string
   category: string
   price: number
   oldPrice?: number
-  rating: number
-  reviews: number
+  rating?: number
+  reviews?: number
   image: string
   images: string[]
   badge?: "hit" | "new" | "sale"

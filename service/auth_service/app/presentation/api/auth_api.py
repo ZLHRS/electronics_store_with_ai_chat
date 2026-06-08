@@ -13,7 +13,12 @@ from app.application.dto.auth_dto import (
 from app.application.service.auth_service import AuthService
 from app.config import AuthConfig
 from app.domain.permissions import P
-from app.presentation.deps import CurrentUser, get_current_user, get_session_context, require_permission
+from app.presentation.deps import (
+    CurrentUser,
+    get_current_user,
+    get_session_context,
+    require_permission,
+)
 from app.presentation.limiters import login_limiter, refresh_limiter, register_limiter
 from app.presentation.schema.user_schema import LoginRequest, RegisterRequest
 

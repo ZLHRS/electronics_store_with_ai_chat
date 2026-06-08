@@ -47,3 +47,34 @@ class SQLAlchemyCategoryRepo(SQLAlchemyBaseRepo, CategoryRepository):
         except SQLAlchemyError as e:
             raise DatabaseError("Failed to create category") from e
         return category_model_to_entity(model)
+
+    async def update(self, category_id: uuid.UUID, name: str | None, slug: str | None) -> CategoryEntity:
+        stmt = select(CategoryModel).where(CategoryModel.id == category_id)
+        try:
+            model = (await self.session.execute(stmt)).scalar_one_or_none()
+        except SQLAlchemyError as e:
+            raise DatabaseError("Failed to fetch category for update") from e
+        if model is None:
+            raise DatabaseError("Category not found")
+        if name is not None:
+            model.name = name
+        if slug is not None:
+            model.slug = slug
+        try:
+            await self.session.flush()
+        except IntegrityError:
+            await self.session.rollback()
+            raise DuplicateEntryError("Slug already exists")
+        except SQLAlchemyError as e:
+            raise DatabaseError("Failed to update category") from e
+        return category_model_to_entity(model)
+
+    async def delete(self, category_id: uuid.UUID) -> None:
+        stmt = select(CategoryModel).where(CategoryModel.id == category_id)
+        try:
+            model = (await self.session.execute(stmt)).scalar_one_or_none()
+            if model:
+                await self.session.delete(model)
+                await self.session.flush()
+        except SQLAlchemyError as e:
+            raise DatabaseError("Failed to delete category") from e

@@ -6,7 +6,12 @@ import pytest
 
 from app.application.dto.payment_dto import CreatePaymentCommand, WebhookPayload
 from app.application.service.payment_service import PaymentService
-from app.domain.entity.payment_entity import PaymentEntity, PaymentEventEntity, PaymentProvider, PaymentStatus
+from app.domain.entity.payment_entity import (
+    PaymentEntity,
+    PaymentEventEntity,
+    PaymentProvider,
+    PaymentStatus,
+)
 from app.domain.repo.payment_event_repo_protocol import CreatePaymentEvent
 from app.domain.repo.payment_repo_protocol import CreatePayment
 from app.exceptions import (
@@ -199,7 +204,8 @@ async def test_create_payment_order_not_found():
 
     with pytest.raises(OrderNotFoundError):
         await service.create_payment(
-            uuid.uuid4(), CreatePaymentCommand(order_id=uuid.uuid4(), provider=PaymentProvider.KASPI)
+            uuid.uuid4(),
+            CreatePaymentCommand(order_id=uuid.uuid4(), provider=PaymentProvider.KASPI),
         )
 
 
@@ -291,7 +297,9 @@ async def test_webhook_kaspi_paid_notifies_order():
     user_id = uuid.uuid4()
     order_id = uuid.uuid4()
     service, repo, event_repo, order_client = _make_service()
-    payment = _make_payment(order_id, user_id, provider=PaymentProvider.KASPI, provider_payment_id="txn-42")
+    payment = _make_payment(
+        order_id, user_id, provider=PaymentProvider.KASPI, provider_payment_id="txn-42"
+    )
     repo._payments[payment.id] = payment
 
     await service.handle_webhook(
@@ -312,14 +320,20 @@ async def test_webhook_kaspi_failed_notifies_order():
     user_id = uuid.uuid4()
     order_id = uuid.uuid4()
     service, repo, _, order_client = _make_service()
-    payment = _make_payment(order_id, user_id, provider=PaymentProvider.KASPI, provider_payment_id="txn-99")
+    payment = _make_payment(
+        order_id, user_id, provider=PaymentProvider.KASPI, provider_payment_id="txn-99"
+    )
     repo._payments[payment.id] = payment
 
     await service.handle_webhook(
         WebhookPayload(
             provider=PaymentProvider.KASPI,
             event_type="payment.failed",
-            raw={"txn_id": "txn-99", "status": "payment.failed", "error_message": "Insufficient funds"},
+            raw={
+                "txn_id": "txn-99",
+                "status": "payment.failed",
+                "error_message": "Insufficient funds",
+            },
         )
     )
 

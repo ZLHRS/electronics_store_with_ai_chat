@@ -30,18 +30,12 @@ class OrderProvider(Provider):
             yield client
 
     @provide(scope=Scope.APP)
-    async def provide_product_http_client(
-        self, config: Config
-    ) -> AsyncIterable[httpx.AsyncClient]:
-        async with httpx.AsyncClient(
-            base_url=config.product_service.url, timeout=5.0
-        ) as client:
+    async def provide_product_http_client(self, config: Config) -> AsyncIterable[httpx.AsyncClient]:
+        async with httpx.AsyncClient(base_url=config.product_service.url, timeout=5.0) as client:
             yield client
 
     @provide(scope=Scope.APP)
-    def provide_cart_client(
-        self, client: httpx.AsyncClient, config: Config
-    ) -> CartServiceClient:
+    def provide_cart_client(self, client: httpx.AsyncClient, config: Config) -> CartServiceClient:
         return CartServiceClient(client, config.jwt.access_token_name)
 
     @provide(scope=Scope.APP)

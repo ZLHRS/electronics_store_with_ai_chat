@@ -1,15 +1,29 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import Image from "next/image"
-import { Package, ChevronRight, Clock, CheckCircle2, Truck, XCircle, Loader2 } from "lucide-react"
+import { Package, ChevronRight, Clock, CheckCircle2, Truck, XCircle, Loader2, CreditCard } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
-import { orders, formatPrice } from "@/lib/data"
+import { fetchOrders, formatOrderDate, type FrontendOrder, type ApiOrderStatus } from "@/lib/api/orders"
+import { formatPrice } from "@/lib/data"
 import { cn } from "@/lib/utils"
-import type { OrderStatus } from "@/lib/types"
 
-const statusConfig: Record<OrderStatus, { label: string; icon: React.ElementType; badgeClass: string }> = {
+const statusConfig: Record<ApiOrderStatus, { label: string; icon: React.ElementType; badgeClass: string }> = {
+  created: {
+    label: "Создан",
+    icon: Clock,
+    badgeClass: "bg-muted text-muted-foreground",
+  },
+  pending_payment: {
+    label: "Ожидает оплаты",
+    icon: CreditCard,
+    badgeClass: "bg-yellow-50 text-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-400",
+  },
+  paid: {
+    label: "Оплачен",
+    icon: CheckCircle2,
+    badgeClass: "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400",
+  },
   processing: {
     label: "Обрабатывается",
     icon: Clock,
@@ -32,7 +46,7 @@ const statusConfig: Record<OrderStatus, { label: string; icon: React.ElementType
   },
 }
 
-type FilterTab = "all" | OrderStatus
+type FilterTab = "all" | ApiOrderStatus
 
 const tabs: { id: FilterTab; label: string }[] = [
   { id: "all", label: "Все" },
@@ -49,10 +63,20 @@ function pluralItems(n: number) {
 }
 
 export default function OrdersPage() {
-  const { user, loading } = useAuth()
+  const { user, loading: authLoading } = useAuth()
+  const [orders, setOrders] = useState<FrontendOrder[]>([])
+  const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<FilterTab>("all")
 
-  if (loading) {
+  useEffect(() => {
+    if (!user) return
+    setLoading(true)
+    fetchOrders()
+      .then(setOrders)
+      .finally(() => setLoading(false))
+  }, [user])
+
+  if (authLoading) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="flex items-center justify-center py-24">
@@ -75,6 +99,16 @@ export default function OrdersPage() {
           >
             Войти
           </Link>
+        </div>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
         </div>
       </div>
     )
@@ -116,8 +150,7 @@ export default function OrdersPage() {
           {filtered.map((order) => {
             const cfg = statusConfig[order.status]
             const StatusIcon = cfg.icon
-            const preview = order.items.slice(0, 3)
-            const extra = order.items.length - 3
+            const count = order.items.reduce((s, i) => s + i.quantity, 0)
 
             return (
               <Link
@@ -125,32 +158,13 @@ export default function OrdersPage() {
                 href={`/orders/${order.id}`}
                 className="group flex items-center gap-4 rounded-2xl border bg-card p-4 transition-shadow hover:shadow-md"
               >
-                <div className="flex -space-x-3">
-                  {preview.map(({ product }, i) => (
-                    <div
-                      key={`${product.id}-${i}`}
-                      className="relative size-14 shrink-0 overflow-hidden rounded-xl border-2 border-background bg-muted/60"
-                      style={{ zIndex: preview.length - i }}
-                    >
-                      <Image
-                        src={product.image || "/placeholder.svg"}
-                        alt={product.name}
-                        fill
-                        sizes="56px"
-                        className="object-contain p-1.5"
-                      />
-                    </div>
-                  ))}
-                  {extra > 0 && (
-                    <div className="relative flex size-14 shrink-0 items-center justify-center rounded-xl border-2 border-background bg-muted text-xs font-medium text-muted-foreground">
-                      +{extra}
-                    </div>
-                  )}
+                <div className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-muted/60">
+                  <Package className="size-6 text-muted-foreground" />
                 </div>
 
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-semibold">#{order.id}</p>
+                    <p className="text-sm font-semibold">#{order.id.slice(0, 8)}</p>
                     <span
                       className={cn(
                         "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
@@ -162,12 +176,12 @@ export default function OrdersPage() {
                     </span>
                   </div>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {order.date} · {order.items.length} {pluralItems(order.items.length)}
+                    {formatOrderDate(order.created_at)} · {count} {pluralItems(count)}
                   </p>
                 </div>
 
                 <div className="flex shrink-0 items-center gap-1.5">
-                  <p className="text-sm font-semibold">{formatPrice(order.total)}</p>
+                  <p className="text-sm font-semibold">{formatPrice(order.total_amount)}</p>
                   <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
                 </div>
               </Link>

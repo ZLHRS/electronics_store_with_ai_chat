@@ -4,14 +4,13 @@ from decimal import Decimal
 
 import pytest
 
-from app.application.dto.order_dto import CreateOrderCommand, UpdateStatusCommand
+from app.application.dto.order_dto import CreateOrderCommand
 from app.application.service.order_service import OrderService
 from app.domain.entity.order_entity import CreateOrder, OrderEntity, OrderStatus
 from app.exceptions import (
     CartEmptyError,
     OrderAccessDeniedError,
     OrderCancelForbiddenError,
-    OrderNotFoundError,
     ProductNotAvailableError,
 )
 from app.infrastructure.cart_client import CartData, CartItemData
@@ -47,10 +46,14 @@ class FakeOrderRepo:
     async def update_status(self, order_id: uuid.UUID, status: str) -> OrderEntity:
         order = self._store[order_id]
         updated = OrderEntity(
-            id=order.id, user_id=order.user_id, status=status,
-            total_amount=order.total_amount, delivery_address=order.delivery_address,
+            id=order.id,
+            user_id=order.user_id,
+            status=status,
+            total_amount=order.total_amount,
+            delivery_address=order.delivery_address,
             payment_method=order.payment_method,
-            created_at=order.created_at, updated_at=datetime.datetime.now(datetime.UTC),
+            created_at=order.created_at,
+            updated_at=datetime.datetime.now(datetime.UTC),
             items=order.items,
         )
         self._store[order_id] = updated
@@ -100,7 +103,8 @@ async def test_create_order_success():
     service = OrderService(FakeOrderRepo(), cart_client, product_client)
 
     result = await service.create_order(
-        user_id, "token",
+        user_id,
+        "token",
         CreateOrderCommand(delivery_address="Astana, Mangilik El 55", payment_method="kaspi"),
     )
 
@@ -118,7 +122,8 @@ async def test_create_order_empty_cart():
     )
     with pytest.raises(CartEmptyError):
         await service.create_order(
-            uuid.uuid4(), "token",
+            uuid.uuid4(),
+            "token",
             CreateOrderCommand(delivery_address="addr", payment_method="kaspi"),
         )
 
@@ -133,7 +138,8 @@ async def test_create_order_product_not_active():
     )
     with pytest.raises(ProductNotAvailableError):
         await service.create_order(
-            uuid.uuid4(), "token",
+            uuid.uuid4(),
+            "token",
             CreateOrderCommand(delivery_address="addr", payment_method="kaspi"),
         )
 
@@ -149,7 +155,8 @@ async def test_cancel_order_success():
         FakeProductClient({product_id: _make_product(product_id)}),
     )
     order = await service.create_order(
-        user_id, "token",
+        user_id,
+        "token",
         CreateOrderCommand(delivery_address="addr", payment_method="kaspi"),
     )
     result = await service.cancel_order(order.id, user_id)
@@ -167,7 +174,8 @@ async def test_cancel_delivered_order_forbidden():
         FakeProductClient({product_id: _make_product(product_id)}),
     )
     order = await service.create_order(
-        user_id, "token",
+        user_id,
+        "token",
         CreateOrderCommand(delivery_address="addr", payment_method="kaspi"),
     )
     await repo.update_status(order.id, OrderStatus.DELIVERED)
@@ -188,7 +196,8 @@ async def test_get_order_access_denied():
         FakeProductClient({product_id: _make_product(product_id)}),
     )
     order = await service.create_order(
-        user_id, "token",
+        user_id,
+        "token",
         CreateOrderCommand(delivery_address="addr", payment_method="kaspi"),
     )
     with pytest.raises(OrderAccessDeniedError):

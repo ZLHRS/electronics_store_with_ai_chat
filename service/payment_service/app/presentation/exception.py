@@ -23,9 +23,7 @@ async def _payment_not_found_handler(request: Request, exc: PaymentNotFoundError
     return JSONResponse(status_code=404, content={"detail": str(exc)})
 
 
-async def _payment_forbidden_handler(
-    request: Request, exc: PaymentForbiddenError
-) -> JSONResponse:
+async def _payment_forbidden_handler(request: Request, exc: PaymentForbiddenError) -> JSONResponse:
     return JSONResponse(status_code=403, content={"detail": str(exc)})
 
 

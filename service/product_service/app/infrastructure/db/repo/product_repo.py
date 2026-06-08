@@ -34,7 +34,9 @@ class SQLAlchemyProductRepo(SQLAlchemyBaseRepo, ProductRepository):
             return None
         images = await self._load_images([product_id])
         attributes = await self._load_attributes([product_id])
-        return product_model_to_entity(model, images.get(product_id, []), attributes.get(product_id, []))
+        return product_model_to_entity(
+            model, images.get(product_id, []), attributes.get(product_id, [])
+        )
 
     async def get_by_slug(self, slug: str) -> ProductEntity | None:
         stmt = select(ProductModel).where(ProductModel.slug == slug)
@@ -46,7 +48,9 @@ class SQLAlchemyProductRepo(SQLAlchemyBaseRepo, ProductRepository):
             return None
         images = await self._load_images([model.id])
         attributes = await self._load_attributes([model.id])
-        return product_model_to_entity(model, images.get(model.id, []), attributes.get(model.id, []))
+        return product_model_to_entity(
+            model, images.get(model.id, []), attributes.get(model.id, [])
+        )
 
     async def list(self, filter: ProductFilter) -> tuple[list[ProductEntity], int]:
         stmt = select(ProductModel)
@@ -89,15 +93,19 @@ class SQLAlchemyProductRepo(SQLAlchemyBaseRepo, ProductRepository):
             stmt = stmt.where(ProductModel.id.in_(subq))
 
         try:
-            total = await self.session.scalar(
-                select(func.count()).select_from(stmt.subquery())
-            )
+            total = await self.session.scalar(select(func.count()).select_from(stmt.subquery()))
             offset = (filter.page - 1) * filter.limit
             rows = (
-                await self.session.execute(
-                    stmt.order_by(ProductModel.created_at.desc()).offset(offset).limit(filter.limit)
+                (
+                    await self.session.execute(
+                        stmt.order_by(ProductModel.created_at.desc())
+                        .offset(offset)
+                        .limit(filter.limit)
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
         except SQLAlchemyError as e:
             raise DatabaseError("Failed to list products") from e
 
@@ -109,7 +117,10 @@ class SQLAlchemyProductRepo(SQLAlchemyBaseRepo, ProductRepository):
         attributes = await self._load_attributes(product_ids)
 
         return (
-            [product_model_to_entity(r, images.get(r.id, []), attributes.get(r.id, [])) for r in rows],
+            [
+                product_model_to_entity(r, images.get(r.id, []), attributes.get(r.id, []))
+                for r in rows
+            ],
             total or 0,
         )
 
@@ -234,7 +245,9 @@ class SQLAlchemyProductRepo(SQLAlchemyBaseRepo, ProductRepository):
                 delete(ProductImageModel).where(ProductImageModel.product_id == product_id)
             )
             models = [
-                ProductImageModel(product_id=product_id, image_url=i.image_url, sort_order=i.sort_order)
+                ProductImageModel(
+                    product_id=product_id, image_url=i.image_url, sort_order=i.sort_order
+                )
                 for i in images
             ]
             self.session.add_all(models)
@@ -243,7 +256,9 @@ class SQLAlchemyProductRepo(SQLAlchemyBaseRepo, ProductRepository):
             raise DatabaseError("Failed to replace images") from e
         return models
 
-    async def _replace_attributes(self, product_id: uuid.UUID, attributes) -> list[ProductAttributeModel]:
+    async def _replace_attributes(
+        self, product_id: uuid.UUID, attributes
+    ) -> list[ProductAttributeModel]:
         try:
             await self.session.execute(
                 delete(ProductAttributeModel).where(ProductAttributeModel.product_id == product_id)

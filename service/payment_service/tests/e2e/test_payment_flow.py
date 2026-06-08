@@ -19,7 +19,6 @@ def _make_order_info(user_id: uuid.UUID) -> OrderInfo:
 
 @pytest.mark.asyncio
 async def test_full_payment_flow_via_webhook(client, db_session):
-    from app.infrastructure.db.repo.payment_event_repo import SQLAlchemyPaymentEventRepo
     from app.infrastructure.db.repo.payment_repo import SQLAlchemyPaymentRepo
     from app.presentation.deps import CurrentUser, get_current_user
 

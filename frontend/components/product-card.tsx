@@ -71,11 +71,13 @@ export function ProductCard({ product, className }: { product: Product; classNam
       </Link>
 
       <div className="flex flex-1 flex-col gap-2.5 p-4">
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <Star className="size-3.5 fill-warning text-warning" />
-          <span className="font-medium text-foreground">{product.rating}</span>
-          <span>· {product.reviews} отзывов</span>
-        </div>
+        {product.rating != null && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Star className="size-3.5 fill-warning text-warning" />
+            <span className="font-medium text-foreground">{product.rating}</span>
+            {product.reviews != null && <span>· {product.reviews} отзывов</span>}
+          </div>
+        )}
         <Link
           href={`/product/${product.id}`}
           className="line-clamp-2 text-sm font-medium leading-snug hover:text-primary"

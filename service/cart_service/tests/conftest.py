@@ -64,7 +64,9 @@ async def engine():
         await conn.execute(text("CREATE SCHEMA public"))
         await conn.run_sync(Base.metadata.create_all)
         await conn.execute(
-            text("CREATE UNIQUE INDEX uq_carts_user_active ON carts(user_id) WHERE status = 'active'")
+            text(
+                "CREATE UNIQUE INDEX uq_carts_user_active ON carts(user_id) WHERE status = 'active'"
+            )
         )
     yield engine
     async with engine.begin() as conn:

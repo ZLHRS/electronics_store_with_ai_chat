@@ -35,7 +35,9 @@ async def add_item(
     user: CurrentUser = Depends(get_current_user),
 ) -> CartResponse:
     return _to_response(
-        await service.add_item(user.id, AddItemCommand(product_id=data.product_id, quantity=data.quantity))
+        await service.add_item(
+            user.id, AddItemCommand(product_id=data.product_id, quantity=data.quantity)
+        )
     )
 
 

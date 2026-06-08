@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useTheme } from "next-themes"
 import {
   Search,
@@ -24,7 +24,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
-import { categories } from "@/lib/data"
+import { fetchCategories, type DisplayCategory } from "@/lib/api/categories"
 import { useCart } from "@/components/cart-provider"
 import { useAuth } from "@/components/auth-provider"
 import { useFavorites } from "@/components/favorites-provider"
@@ -52,6 +52,11 @@ export function SiteHeader() {
   const { user } = useAuth()
   const { count: favCount } = useFavorites()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [categories, setCategories] = useState<DisplayCategory[]>([])
+
+  useEffect(() => {
+    fetchCategories().then(setCategories)
+  }, [])
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/70 bg-background/85 backdrop-blur-xl">
@@ -73,8 +78,8 @@ export function SiteHeader() {
             <nav className="flex flex-col gap-1 p-4">
               {categories.map((c) => (
                 <Link
-                  key={c.id}
-                  href={`/?category=${c.id}`}
+                  key={c.uuid}
+                  href={`/?category=${c.slug}`}
                   onClick={() => setMobileOpen(false)}
                   className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-accent"
                 >
@@ -193,8 +198,8 @@ export function SiteHeader() {
           </span>
           {categories.map((c) => (
             <Link
-              key={c.id}
-              href={`/?category=${c.id}`}
+              key={c.uuid}
+              href={`/?category=${c.slug}`}
               className={cn(
                 "rounded-full px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
               )}

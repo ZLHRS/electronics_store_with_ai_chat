@@ -18,9 +18,13 @@ from app.infrastructure.security import SecurityService
 ROLE_PERMISSIONS: dict[str, list[str]] = {
     "admin": [v for v in vars(P).values() if isinstance(v, str) and "." in v],
     "manager": [
-        P.PRODUCTS_READ, P.PRODUCTS_CREATE, P.PRODUCTS_UPDATE,
-        P.ORDERS_READ_OWN, P.ORDERS_READ_ALL,
-        P.ORDERS_UPDATE_OWN, P.ORDERS_UPDATE_ALL,
+        P.PRODUCTS_READ,
+        P.PRODUCTS_CREATE,
+        P.PRODUCTS_UPDATE,
+        P.ORDERS_READ_OWN,
+        P.ORDERS_READ_ALL,
+        P.ORDERS_UPDATE_OWN,
+        P.ORDERS_UPDATE_ALL,
     ],
     "user": [
         P.USERS_READ,
@@ -31,18 +35,18 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
 }
 
 PERMISSION_DESCRIPTIONS: dict[str, str] = {
-    P.USERS_READ:        "Read users",
-    P.USERS_CREATE:      "Create users",
-    P.USERS_UPDATE:      "Update users",
-    P.USERS_DELETE:      "Delete users",
-    P.ROLES_READ:        "Read roles",
-    P.ROLES_ASSIGN:      "Assign roles to users",
-    P.PRODUCTS_READ:     "Read products",
-    P.PRODUCTS_CREATE:   "Create products",
-    P.PRODUCTS_UPDATE:   "Update products",
-    P.PRODUCTS_DELETE:   "Delete products",
-    P.ORDERS_READ_OWN:   "Read own orders",
-    P.ORDERS_READ_ALL:   "Read all orders",
+    P.USERS_READ: "Read users",
+    P.USERS_CREATE: "Create users",
+    P.USERS_UPDATE: "Update users",
+    P.USERS_DELETE: "Delete users",
+    P.ROLES_READ: "Read roles",
+    P.ROLES_ASSIGN: "Assign roles to users",
+    P.PRODUCTS_READ: "Read products",
+    P.PRODUCTS_CREATE: "Create products",
+    P.PRODUCTS_UPDATE: "Update products",
+    P.PRODUCTS_DELETE: "Delete products",
+    P.ORDERS_READ_OWN: "Read own orders",
+    P.ORDERS_READ_ALL: "Read all orders",
     P.ORDERS_UPDATE_OWN: "Update own orders",
     P.ORDERS_UPDATE_ALL: "Update all orders",
 }
@@ -129,6 +133,7 @@ async def create_admin(email: str, password: str) -> None:
 
 def _prompt(label: str, secret: bool = False) -> str:
     import getpass
+
     return getpass.getpass(f"{label}: ") if secret else input(f"{label}: ")
 
 

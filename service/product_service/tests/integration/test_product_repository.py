@@ -104,8 +104,13 @@ async def test_update_replaces_attributes(db_session):
     updated = await repo.update(
         product.id,
         UpdateProduct(
-            name=None, slug=None, description=None, price=None,
-            category_id=None, brand_id=None, status=ProductStatus.ACTIVE,
+            name=None,
+            slug=None,
+            description=None,
+            price=None,
+            category_id=None,
+            brand_id=None,
+            status=ProductStatus.ACTIVE,
             images=None,
             attributes=[CreateAttributeItem("RAM", "16 GB")],
         ),

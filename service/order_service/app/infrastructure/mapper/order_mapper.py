@@ -3,9 +3,7 @@ from app.infrastructure.db.model.order_item_model import OrderItemModel
 from app.infrastructure.db.model.order_model import OrderModel
 
 
-def order_model_to_entity(
-    model: OrderModel, items: list[OrderItemModel]
-) -> OrderEntity:
+def order_model_to_entity(model: OrderModel, items: list[OrderItemModel]) -> OrderEntity:
     return OrderEntity(
         id=model.id,
         user_id=model.user_id,

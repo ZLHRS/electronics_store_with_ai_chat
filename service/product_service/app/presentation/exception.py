@@ -21,9 +21,7 @@ async def _not_found_handler(request: Request, exc: ProductNotFoundError) -> JSO
     return JSONResponse(status_code=404, content={"detail": str(exc)})
 
 
-async def _category_not_found_handler(
-    request: Request, exc: CategoryNotFoundError
-) -> JSONResponse:
+async def _category_not_found_handler(request: Request, exc: CategoryNotFoundError) -> JSONResponse:
     return JSONResponse(status_code=404, content={"detail": str(exc)})
 
 

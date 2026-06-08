@@ -8,6 +8,11 @@ class CreateBrandRequest(BaseModel):
     slug: str | None = Field(default=None, max_length=256)
 
 
+class UpdateBrandRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=256)
+    slug: str | None = Field(default=None, max_length=256)
+
+
 class BrandResponse(BaseModel):
     id: uuid.UUID
     name: str

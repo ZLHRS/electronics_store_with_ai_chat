@@ -5,7 +5,6 @@ import pytest
 
 from app.application.dto.user_dto import ProfileResult
 from app.application.service.user_service import UserProfileService
-from app.infrastructure.jwt_service import JWTService
 from app.presentation.deps import CurrentUser, get_current_user
 
 

@@ -27,9 +27,7 @@ class PaymentProvider(Provider):
 
     @provide(scope=Scope.APP)
     async def provide_http_client(self, config: Config) -> AsyncIterable[httpx.AsyncClient]:
-        async with httpx.AsyncClient(
-            base_url=config.order_service.url, timeout=5.0
-        ) as client:
+        async with httpx.AsyncClient(base_url=config.order_service.url, timeout=5.0) as client:
             yield client
 
     @provide(scope=Scope.APP)

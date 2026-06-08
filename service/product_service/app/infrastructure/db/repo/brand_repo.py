@@ -47,3 +47,34 @@ class SQLAlchemyBrandRepo(SQLAlchemyBaseRepo, BrandRepository):
         except SQLAlchemyError as e:
             raise DatabaseError("Failed to create brand") from e
         return brand_model_to_entity(model)
+
+    async def update(self, brand_id: uuid.UUID, name: str | None, slug: str | None) -> BrandEntity:
+        stmt = select(BrandModel).where(BrandModel.id == brand_id)
+        try:
+            model = (await self.session.execute(stmt)).scalar_one_or_none()
+        except SQLAlchemyError as e:
+            raise DatabaseError("Failed to fetch brand for update") from e
+        if model is None:
+            raise DatabaseError("Brand not found")
+        if name is not None:
+            model.name = name
+        if slug is not None:
+            model.slug = slug
+        try:
+            await self.session.flush()
+        except IntegrityError:
+            await self.session.rollback()
+            raise DuplicateEntryError("Slug already exists")
+        except SQLAlchemyError as e:
+            raise DatabaseError("Failed to update brand") from e
+        return brand_model_to_entity(model)
+
+    async def delete(self, brand_id: uuid.UUID) -> None:
+        stmt = select(BrandModel).where(BrandModel.id == brand_id)
+        try:
+            model = (await self.session.execute(stmt)).scalar_one_or_none()
+            if model:
+                await self.session.delete(model)
+                await self.session.flush()
+        except SQLAlchemyError as e:
+            raise DatabaseError("Failed to delete brand") from e

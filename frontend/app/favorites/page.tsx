@@ -1,17 +1,33 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Heart } from "lucide-react"
 import Link from "next/link"
 import { useFavorites } from "@/components/favorites-provider"
 import { useAuth } from "@/components/auth-provider"
 import { ProductCard } from "@/components/product-card"
-import { products } from "@/lib/data"
+import { Skeleton } from "@/components/ui/skeleton"
+import { fetchProductById } from "@/lib/api/products"
+import type { Product } from "@/lib/types"
 
 export default function FavoritesPage() {
-  const { user, loading } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const { ids } = useFavorites()
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(false)
 
-  if (loading) {
+  useEffect(() => {
+    if (!user || ids.size === 0) {
+      setProducts([])
+      return
+    }
+    setLoading(true)
+    Promise.all(Array.from(ids).map((id) => fetchProductById(id)))
+      .then((results) => setProducts(results.filter(Boolean) as Product[]))
+      .finally(() => setLoading(false))
+  }, [user, ids])
+
+  if (authLoading) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="flex flex-col items-center gap-4 py-24 text-center">
@@ -39,9 +55,20 @@ export default function FavoritesPage() {
     )
   }
 
-  const favoriteProducts = products.filter((p) => ids.has(p.id))
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <Skeleton className="mb-8 h-8 w-40" />
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          {Array.from({ length: ids.size }).map((_, i) => (
+            <Skeleton key={i} className="aspect-[3/4] rounded-2xl" />
+          ))}
+        </div>
+      </div>
+    )
+  }
 
-  if (favoriteProducts.length === 0) {
+  if (products.length === 0) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <h1 className="mb-8 text-2xl font-semibold tracking-tight">Избранное</h1>
@@ -68,11 +95,11 @@ export default function FavoritesPage() {
       <div className="mb-6 flex items-center gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Избранное</h1>
         <span className="rounded-full bg-muted px-2.5 py-0.5 text-sm text-muted-foreground">
-          {favoriteProducts.length}
+          {products.length}
         </span>
       </div>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        {favoriteProducts.map((product) => (
+        {products.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
       </div>

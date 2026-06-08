@@ -1,6 +1,5 @@
 import logging
 import uuid
-from decimal import Decimal
 
 from app.application.dto.payment_dto import CreatePaymentCommand, PaymentResult, WebhookPayload
 from app.domain.entity.payment_entity import PaymentProvider, PaymentStatus
@@ -85,9 +84,7 @@ class PaymentService:
         if order.user_id != user_id:
             raise OrderForbiddenError("Order does not belong to this user")
         if order.status != "pending_payment":
-            raise InvalidOrderStatusError(
-                f"Order cannot be paid in status '{order.status}'"
-            )
+            raise InvalidOrderStatusError(f"Order cannot be paid in status '{order.status}'")
 
         existing = await self._payments.get_active_by_order_id(command.order_id)
         if existing and existing.status in (PaymentStatus.CREATED, PaymentStatus.PENDING):
@@ -130,9 +127,7 @@ class PaymentService:
         if payment.user_id != user_id:
             raise PaymentForbiddenError("Payment does not belong to this user")
         if payment.status != PaymentStatus.PAID:
-            raise InvalidPaymentStatusError(
-                f"Cannot refund payment in status '{payment.status}'"
-            )
+            raise InvalidPaymentStatusError(f"Cannot refund payment in status '{payment.status}'")
 
         updated = await self._payments.update_status(payment_id, PaymentStatus.REFUNDED)
         logger.info("Payment refunded payment_id=%s", payment_id)
@@ -170,9 +165,7 @@ class PaymentService:
         if webhook.event_type in paid_types:
             await self._payments.update_status(payment.id, PaymentStatus.PAID)
             await self._orders.notify_payment_paid(payment.order_id, payment.id)
-            logger.info(
-                "Payment confirmed payment_id=%s order_id=%s", payment.id, payment.order_id
-            )
+            logger.info("Payment confirmed payment_id=%s order_id=%s", payment.id, payment.order_id)
         elif webhook.event_type in failed_types:
             reason = _extract_failure_reason(webhook.provider, webhook.raw)
             await self._payments.update_status(payment.id, PaymentStatus.FAILED, reason)

@@ -1,10 +1,9 @@
 import uuid
-from decimal import Decimal
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.domain.entity.payment_entity import PaymentProvider, PaymentStatus
+from app.domain.entity.payment_entity import PaymentProvider
 
 
 def _mock_current_user(user_id: uuid.UUID):

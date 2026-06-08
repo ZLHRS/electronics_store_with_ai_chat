@@ -4,11 +4,11 @@ from logging.config import fileConfig
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
+import app.infrastructure.db.model.order_item_model  # noqa: F401
+import app.infrastructure.db.model.order_model  # noqa: F401
 from alembic import context
 from app.config import setup_config
 from app.infrastructure.db.model.base_model import Base
-import app.infrastructure.db.model.order_model  # noqa: F401
-import app.infrastructure.db.model.order_item_model  # noqa: F401
 
 config = context.config
 

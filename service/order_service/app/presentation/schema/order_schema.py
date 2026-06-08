@@ -5,7 +5,13 @@ from decimal import Decimal
 from pydantic import BaseModel, Field
 
 VALID_STATUSES = {
-    "created", "pending_payment", "paid", "processing", "shipped", "delivered", "cancelled"
+    "created",
+    "pending_payment",
+    "paid",
+    "processing",
+    "shipped",
+    "delivered",
+    "cancelled",
 }
 
 
@@ -19,7 +25,9 @@ class CreateOrderRequest(BaseModel):
 
 
 class UpdateStatusRequest(BaseModel):
-    status: str = Field(pattern="^(created|pending_payment|paid|processing|shipped|delivered|cancelled)$")
+    status: str = Field(
+        pattern="^(created|pending_payment|paid|processing|shipped|delivered|cancelled)$"
+    )
 
 
 class OrderItemResponse(BaseModel):

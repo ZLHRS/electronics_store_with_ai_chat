@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Loader2, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -28,7 +27,6 @@ function PasswordStrength({ password }: { password: string }) {
 }
 
 export function RegisterForm() {
-  const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -42,8 +40,7 @@ export function RegisterForm() {
     try {
       await apiRegister(email, password)
       await apiLogin(email, password)
-      router.push("/profile")
-      router.refresh()
+      window.location.replace("/profile")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка регистрации")
     } finally {

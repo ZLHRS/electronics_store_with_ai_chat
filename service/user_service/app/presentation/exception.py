@@ -21,9 +21,7 @@ async def _address_not_found_handler(request: Request, exc: AddressNotFoundError
     return JSONResponse(status_code=404, content={"detail": str(exc)})
 
 
-async def _address_limit_handler(
-    request: Request, exc: AddressLimitExceededError
-) -> JSONResponse:
+async def _address_limit_handler(request: Request, exc: AddressLimitExceededError) -> JSONResponse:
     return JSONResponse(status_code=422, content={"detail": str(exc)})
 
 
@@ -33,9 +31,7 @@ async def _favorite_exists_handler(
     return JSONResponse(status_code=409, content={"detail": str(exc)})
 
 
-async def _favorite_not_found_handler(
-    request: Request, exc: FavoriteNotFoundError
-) -> JSONResponse:
+async def _favorite_not_found_handler(request: Request, exc: FavoriteNotFoundError) -> JSONResponse:
     return JSONResponse(status_code=404, content={"detail": str(exc)})
 
 

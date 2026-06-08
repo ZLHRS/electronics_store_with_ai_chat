@@ -30,7 +30,9 @@ class ProductServiceClient:
         if response.status_code == 404:
             return None
         if not response.is_success:
-            logger.warning("Product service returned %s for product_id=%s", response.status_code, product_id)
+            logger.warning(
+                "Product service returned %s for product_id=%s", response.status_code, product_id
+            )
             return None
         data = response.json()
         image_url = data["images"][0]["image_url"] if data.get("images") else None
