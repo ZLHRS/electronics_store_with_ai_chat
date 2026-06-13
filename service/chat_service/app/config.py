@@ -39,10 +39,9 @@ class ProductServiceConfig(BaseModel):
 
 class AIConfig(BaseModel):
     openai_api_key: SecretStr
-    anthropic_api_key: SecretStr
     embedding_model: str = "text-embedding-3-small"
     embedding_dimensions: int = 1536
-    llm_model: str = "claude-3-5-haiku-20241022"
+    llm_model: str = "gpt-4o-mini"
 
 
 class CorsConfig(BaseModel):
@@ -80,12 +79,11 @@ class EnvConfig(BaseSettings):
     )
 
     openai_api_key: SecretStr = Field(validation_alias="OPENAI_API_KEY")
-    anthropic_api_key: SecretStr = Field(validation_alias="ANTHROPIC_API_KEY")
     embedding_model: str = Field(
         default="text-embedding-3-small", validation_alias="EMBEDDING_MODEL"
     )
     llm_model: str = Field(
-        default="claude-3-5-haiku-20241022", validation_alias="LLM_MODEL"
+        default="gpt-4o-mini", validation_alias="LLM_MODEL"
     )
 
     cors_origins: str = Field(default="", validation_alias="CORS_ORIGINS")
@@ -135,7 +133,6 @@ def setup_config() -> Config:
         product_service=ProductServiceConfig(url=env.product_service_url),
         ai=AIConfig(
             openai_api_key=env.openai_api_key,
-            anthropic_api_key=env.anthropic_api_key,
             embedding_model=env.embedding_model,
             llm_model=env.llm_model,
         ),

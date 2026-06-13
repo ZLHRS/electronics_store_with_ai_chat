@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import anthropic
+import openai
 
 from app.domain.entity.chat_entity import MessageEntity
 from app.domain.repo.chat_repo import ProductContext
@@ -19,7 +19,7 @@ _SYSTEM = """Ты AI-ассистент интернет-магазина Shop.
 
 
 class LLMService:
-    def __init__(self, client: anthropic.AsyncAnthropic, model: str):
+    def __init__(self, client: openai.AsyncOpenAI, model: str):
         self._client = client
         self._model = model
 
@@ -30,13 +30,12 @@ class LLMService:
         user_message: str,
     ) -> str:
         messages = self._build_messages(history, context, user_message)
-        response = await self._client.messages.create(
+        response = await self._client.chat.completions.create(
             model=self._model,
             max_tokens=1024,
-            system=_SYSTEM,
-            messages=messages,
+            messages=[{"role": "system", "content": _SYSTEM}] + messages,
         )
-        return response.content[0].text
+        return response.choices[0].message.content or ""
 
     def _build_messages(
         self,

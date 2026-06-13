@@ -1,6 +1,5 @@
 from collections.abc import AsyncIterable
 
-import anthropic
 import httpx
 import openai
 from dishka import Provider, Scope, provide
@@ -39,12 +38,6 @@ class ChatProvider(Provider):
         return openai.AsyncOpenAI(api_key=ai_config.openai_api_key.get_secret_value())
 
     @provide(scope=Scope.APP)
-    def provide_anthropic_client(self, ai_config: AIConfig) -> anthropic.AsyncAnthropic:
-        return anthropic.AsyncAnthropic(
-            api_key=ai_config.anthropic_api_key.get_secret_value()
-        )
-
-    @provide(scope=Scope.APP)
     def provide_embedding_service(
         self, client: openai.AsyncOpenAI, ai_config: AIConfig
     ) -> EmbeddingService:
@@ -52,7 +45,7 @@ class ChatProvider(Provider):
 
     @provide(scope=Scope.APP)
     def provide_llm_service(
-        self, client: anthropic.AsyncAnthropic, ai_config: AIConfig
+        self, client: openai.AsyncOpenAI, ai_config: AIConfig
     ) -> LLMService:
         return LLMService(client, ai_config.llm_model)
 

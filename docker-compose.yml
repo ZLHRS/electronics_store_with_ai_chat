@@ -141,7 +141,6 @@ services:
       - AUTH_SECRET_KEY=${AUTH_SECRET_KEY}
       - PRODUCT_SERVICE_URL=http://product_service:8002
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     depends_on:
       postgres:
         condition: service_healthy
