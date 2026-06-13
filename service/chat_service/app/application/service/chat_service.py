@@ -90,4 +90,6 @@ class ChatService:
             title = cmd.content[:60]
             await self._sessions.update_title(cmd.session_id, title)
 
-        return _to_message_result(assistant_msg)
+        result = _to_message_result(assistant_msg)
+        result.product_ids = [item.product_id for item in context]
+        return result

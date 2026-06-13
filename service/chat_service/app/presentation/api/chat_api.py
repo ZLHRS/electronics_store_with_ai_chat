@@ -38,6 +38,7 @@ class MessageResponse(BaseModel):
     role: str
     content: str
     created_at: str
+    product_ids: list[str] | None = None
 
     @classmethod
     def from_result(cls, r: MessageResult) -> "MessageResponse":
@@ -47,6 +48,7 @@ class MessageResponse(BaseModel):
             role=r.role,
             content=r.content,
             created_at=r.created_at.isoformat(),
+            product_ids=[str(pid) for pid in r.product_ids] if r.product_ids else None,
         )
 
 

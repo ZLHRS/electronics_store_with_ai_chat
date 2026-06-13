@@ -31,3 +31,4 @@ class MessageResult:
     role: str
     content: str
     created_at: datetime.datetime
+    product_ids: list[uuid.UUID] | None = None

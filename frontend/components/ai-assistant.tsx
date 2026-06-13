@@ -1,16 +1,17 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Sparkles, X, ArrowUp, ShoppingCart, Star, Bot } from "lucide-react"
+import { Sparkles, X, ArrowUp, ShoppingCart, Star, Bot, LogIn } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { formatPrice } from "@/lib/data"
-import { fetchProducts } from "@/lib/api/products"
+import { fetchProductById } from "@/lib/api/products"
+import { createChatSession, sendChatMessage } from "@/lib/api/chat"
 import type { Product } from "@/lib/types"
 import { useCart } from "@/components/cart-provider"
+import { useAuth } from "@/components/auth-provider"
 
 type Message = {
   id: number
@@ -31,25 +32,6 @@ const greeting: Message = {
   id: 0,
   role: "assistant",
   text: "Привет! Я AI-ассистент Shop. Опишите, что вы ищете, а я подберу лучшие варианты под ваш бюджет и задачи.",
-}
-
-function pickProducts(query: string, allProducts: Product[]): Product[] {
-  const q = query.toLowerCase()
-  let filtered = allProducts.filter((p) => p.inStock)
-  if (q.includes("ноут")) filtered = filtered.filter((p) => p.category === "laptops")
-  else if (q.includes("пк") || q.includes("cs2") || q.includes("игров")) filtered = filtered.filter((p) => p.category === "gaming")
-  else if (q.includes("смартфон") || q.includes("телефон")) filtered = filtered.filter((p) => p.category === "smartphones")
-  else if (q.includes("маме") || q.includes("подарок")) filtered = filtered.filter((p) => ["wearables", "home", "audio"].includes(p.category))
-  return filtered.slice(0, 2)
-}
-
-function replyText(query: string): string {
-  const q = query.toLowerCase()
-  if (q.includes("ноут")) return "Отличный выбор для работы и учёбы! Вот два лёгких и производительных ноутбука, которые отлично себя показывают:"
-  if (q.includes("пк") || q.includes("cs2") || q.includes("игров")) return "Для CS2 и современных игр в высоком FPS подойдут эти сборки:"
-  if (q.includes("смартфон") || q.includes("телефон")) return "Смотрите популярные смартфоны с отличной камерой и автономностью:"
-  if (q.includes("маме") || q.includes("подарок")) return "Беспроигрышные идеи для подарка — практично и приятно получить:"
-  return "Сейчас покупатели чаще всего выбирают эти товары — высокий рейтинг и много отзывов:"
 }
 
 function ChatProductCard({ product, onClose }: { product: Product; onClose: () => void }) {
@@ -89,19 +71,15 @@ function ChatProductCard({ product, onClose }: { product: Product; onClose: () =
 }
 
 export function AiAssistant() {
+  const { user } = useAuth()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([greeting])
   const [input, setInput] = useState("")
   const [typing, setTyping] = useState(false)
-  const [allProducts, setAllProducts] = useState<Product[]>([])
+  const [sessionId, setSessionId] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const idRef = useRef(1)
-
-  useEffect(() => {
-    if (open && allProducts.length === 0) {
-      fetchProducts(100).then(setAllProducts)
-    }
-  }, [open])
+  const pendingQueryRef = useRef<{ query: string; autoSend: boolean } | null>(null)
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
@@ -114,24 +92,102 @@ export function AiAssistant() {
     }
   }, [open])
 
-  function send(text: string) {
+  const send = useCallback(async (text: string) => {
     const value = text.trim()
     if (!value || typing) return
+
+    if (!user) {
+      setMessages((prev) => [
+        ...prev,
+        { id: idRef.current++, role: "user", text: value },
+        {
+          id: idRef.current++,
+          role: "assistant",
+          text: "Чтобы использовать AI-ассистента, нужно войти в аккаунт.",
+        },
+      ])
+      return
+    }
+
     setMessages((prev) => [...prev, { id: idRef.current++, role: "user", text: value }])
     setInput("")
     setTyping(true)
-    setTimeout(() => {
-      setTyping(false)
+
+    let currentSessionId = sessionId
+    if (!currentSessionId) {
+      const session = await createChatSession()
+      if (!session) {
+        setTyping(false)
+        setMessages((prev) => [
+          ...prev,
+          { id: idRef.current++, role: "assistant", text: "Не удалось создать сессию. Попробуйте позже." },
+        ])
+        return
+      }
+      currentSessionId = session.id
+      setSessionId(session.id)
+    }
+
+    const response = await sendChatMessage(currentSessionId, value)
+    setTyping(false)
+
+    if (!response) {
       setMessages((prev) => [
         ...prev,
-        { id: idRef.current++, role: "assistant", text: replyText(value), products: pickProducts(value, allProducts) },
+        { id: idRef.current++, role: "assistant", text: "Произошла ошибка. Попробуйте ещё раз." },
       ])
-    }, 1100)
-  }
+      return
+    }
+
+    const products: Product[] = []
+    if (response.product_ids && response.product_ids.length > 0) {
+      const fetched = await Promise.all(
+        response.product_ids.slice(0, 3).map((id) => fetchProductById(id)),
+      )
+      products.push(...(fetched.filter(Boolean) as Product[]))
+    }
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: idRef.current++,
+        role: "assistant",
+        text: response.content,
+        products: products.length > 0 ? products : undefined,
+      },
+    ])
+  }, [typing, user, sessionId])
+
+  const openWithQuery = useCallback((query: string, autoSend: boolean) => {
+    setOpen(true)
+    if (query) {
+      pendingQueryRef.current = { query, autoSend }
+    }
+  }, [])
+
+  useEffect(() => {
+    function onOpenAI(e: Event) {
+      const query = (e as CustomEvent<{ query: string }>).detail?.query ?? ""
+      openWithQuery(query, !!query)
+    }
+    window.addEventListener("openAI", onOpenAI)
+    return () => window.removeEventListener("openAI", onOpenAI)
+  }, [openWithQuery])
+
+  useEffect(() => {
+    if (open && pendingQueryRef.current) {
+      const { query, autoSend } = pendingQueryRef.current
+      pendingQueryRef.current = null
+      if (autoSend) {
+        send(query)
+      } else {
+        setInput(query)
+      }
+    }
+  }, [open, send])
 
   return (
     <>
-      {/* Floating button */}
       {!open && (
         <button
           onClick={() => setOpen(true)}
@@ -149,7 +205,6 @@ export function AiAssistant() {
         </button>
       )}
 
-      {/* Backdrop */}
       <div
         onClick={() => setOpen(false)}
         className={cn(
@@ -158,7 +213,6 @@ export function AiAssistant() {
         )}
       />
 
-      {/* Panel */}
       <aside
         role="dialog"
         aria-label="AI-ассистент"
@@ -168,7 +222,6 @@ export function AiAssistant() {
           open ? "translate-x-0" : "translate-x-full",
         )}
       >
-        {/* Header */}
         <div className="flex items-center gap-3 border-b px-4 py-3.5">
           <span className="flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
             <Bot className="size-5" />
@@ -180,7 +233,7 @@ export function AiAssistant() {
             </p>
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span className="size-1.5 rounded-full bg-success" />
-              Онлайн · отвечает мгновенно
+              {user ? "Онлайн · Claude + RAG" : "Войдите для полного доступа"}
             </p>
           </div>
           <Button variant="ghost" size="icon" className="rounded-full" aria-label="Закрыть" onClick={() => setOpen(false)}>
@@ -188,7 +241,18 @@ export function AiAssistant() {
           </Button>
         </div>
 
-        {/* Messages */}
+        {!user && (
+          <div className="mx-4 mt-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800/50 dark:bg-amber-950/20">
+            <LogIn className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div className="text-xs text-amber-800 dark:text-amber-300">
+              <span className="font-medium">Войдите в аккаунт</span> — чтобы AI-ассистент подбирал товары с учётом контекста.{" "}
+              <Link href="/auth/login" onClick={() => setOpen(false)} className="underline underline-offset-2">
+                Войти
+              </Link>
+            </div>
+          </div>
+        )}
+
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5">
           <div className="flex flex-col gap-5">
             {messages.map((m) => (
@@ -238,7 +302,6 @@ export function AiAssistant() {
           </div>
         </div>
 
-        {/* Prompt chips */}
         <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-2">
           {promptChips.map((chip) => (
             <button
@@ -251,7 +314,6 @@ export function AiAssistant() {
           ))}
         </div>
 
-        {/* Input */}
         <div className="border-t p-4">
           <form
             onSubmit={(e) => {

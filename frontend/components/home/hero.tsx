@@ -1,5 +1,6 @@
 "use client"
 
+import { useRef } from "react"
 import { Sparkles, ArrowRight, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -7,7 +8,22 @@ import { Badge } from "@/components/ui/badge"
 
 const chips = ["Ноутбук для работы", "Игровой ПК", "Подарок маме", "Что популярно?"]
 
+function dispatchOpenAI(query: string) {
+  window.dispatchEvent(new CustomEvent("openAI", { detail: { query } }))
+}
+
 export function HomeHero() {
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  function handleAskAI() {
+    const query = inputRef.current?.value.trim() ?? ""
+    dispatchOpenAI(query)
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") handleAskAI()
+  }
+
   return (
     <section className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
       <div className="relative overflow-hidden rounded-3xl bg-primary px-6 py-12 text-primary-foreground sm:px-12 sm:py-16 lg:py-20">
@@ -29,10 +45,12 @@ export function HomeHero() {
           <div className="mt-7 flex max-w-lg items-center gap-2 rounded-full bg-background p-1.5 shadow-lg">
             <Search className="ml-3 size-5 shrink-0 text-muted-foreground" />
             <Input
+              ref={inputRef}
               placeholder="Например: ноутбук до 400 000 ₸"
               className="h-10 border-0 bg-transparent text-foreground shadow-none focus-visible:ring-0"
+              onKeyDown={handleKeyDown}
             />
-            <Button className="h-10 shrink-0 rounded-full px-5">
+            <Button className="h-10 shrink-0 rounded-full px-5" onClick={handleAskAI}>
               Спросить AI
               <ArrowRight data-icon="inline-end" />
             </Button>
@@ -42,6 +60,7 @@ export function HomeHero() {
             {chips.map((c) => (
               <button
                 key={c}
+                onClick={() => dispatchOpenAI(c)}
                 className="rounded-full bg-primary-foreground/10 px-3 py-1.5 text-sm text-primary-foreground/90 backdrop-blur transition-colors hover:bg-primary-foreground/20"
               >
                 {c}

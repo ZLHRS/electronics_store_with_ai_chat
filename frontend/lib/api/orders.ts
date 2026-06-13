@@ -89,6 +89,28 @@ export async function fetchOrderById(id: string): Promise<FrontendOrder | null> 
   return adaptOrder(data)
 }
 
+export async function createOrder(
+  deliveryAddress: string,
+  paymentMethod: string,
+): Promise<FrontendOrder | null> {
+  try {
+    const res = await fetch("/api/v1/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        delivery_address: deliveryAddress,
+        payment_method: paymentMethod,
+      }),
+    })
+    if (!res.ok) return null
+    const data: ApiOrder = await res.json()
+    return adaptOrder(data)
+  } catch {
+    return null
+  }
+}
+
 export async function cancelOrder(id: string): Promise<FrontendOrder | null> {
   try {
     const res = await fetch(`/api/v1/orders/${id}/cancel`, {
