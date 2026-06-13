@@ -4,6 +4,7 @@ PRODUCT_SERVICE = service/product_service
 CART_SERVICE = service/cart_service
 ORDER_SERVICE = service/order_service
 PAYMENT_SERVICE = service/payment_service
+CHAT_SERVICE = service/chat_service
 FRONTEND = frontend
 
 .PHONY: up down build dev test lint format migrate migration seed init-db docker-seed docker-init-db set-admin \
@@ -12,12 +13,14 @@ FRONTEND = frontend
         up-cart build-cart down-cart \
         up-order build-order down-order \
         up-payment build-payment down-payment \
+        up-chat build-chat down-chat \
         up-frontend build-frontend down-frontend frontend-dev frontend-build frontend-install \
         user-dev user-test user-lint user-format user-migrate user-migration \
         product-dev product-test product-lint product-format product-migrate product-migration \
         cart-dev cart-test cart-lint cart-format cart-migrate cart-migration \
         order-dev order-test order-lint order-format order-migrate order-migration \
-        payment-dev payment-test payment-lint payment-format payment-migrate payment-migration
+        payment-dev payment-test payment-lint payment-format payment-migrate payment-migration \
+        chat-dev chat-test chat-lint chat-format chat-migrate chat-migration chat-index
 
 up:
 	docker compose up -d
@@ -240,3 +243,33 @@ payment-migrate:
 
 payment-migration:
 	cd $(PAYMENT_SERVICE) && uv run alembic revision --autogenerate -m "$(name)"
+
+up-chat:
+	docker compose up -d chat_service
+
+build-chat:
+	docker compose up -d --build chat_service
+
+down-chat:
+	docker compose stop chat_service
+
+chat-dev:
+	cd $(CHAT_SERVICE) && uv run uvicorn main:app --reload --host 0.0.0.0 --port 8006
+
+chat-test:
+	cd $(CHAT_SERVICE) && uv run pytest
+
+chat-lint:
+	cd $(CHAT_SERVICE) && uv run ruff check .
+
+chat-format:
+	cd $(CHAT_SERVICE) && uv run ruff format . && uv run ruff check --fix .
+
+chat-migrate:
+	cd $(CHAT_SERVICE) && uv run alembic upgrade head
+
+chat-migration:
+	cd $(CHAT_SERVICE) && uv run alembic revision --autogenerate -m "$(name)"
+
+chat-index:
+	curl -s -X POST http://localhost/api/v1/chat/index -b "access_token=$$(cat .access_token)" | jq .

@@ -129,8 +129,32 @@ services:
     networks:
       - internal
 
+  chat_service:
+    build:
+      context: ./service/chat_service
+      dockerfile: Dockerfile
+    env_file: ./service/chat_service/.env
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_NAME=chatdb
+      - REDIS_URL=${REDIS_URL}
+      - AUTH_SECRET_KEY=${AUTH_SECRET_KEY}
+      - PRODUCT_SERVICE_URL=http://product_service:8002
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      product_service:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - internal
+
   postgres:
-    image: postgres:17-alpine
+    image: pgvector/pgvector:pg17
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
@@ -178,6 +202,7 @@ services:
       - cart_service
       - order_service
       - payment_service
+      - chat_service
     restart: unless-stopped
     networks:
       - internal
