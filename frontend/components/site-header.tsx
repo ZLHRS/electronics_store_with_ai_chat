@@ -4,7 +4,6 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { useTheme } from "next-themes"
 import {
-  Search,
   ShoppingCart,
   Heart,
   Menu,
@@ -14,7 +13,6 @@ import {
   Sparkles,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import {
   Sheet,
@@ -133,14 +131,6 @@ export function SiteHeader() {
         <Link href="/" className="flex items-center gap-2">
           <Logo />
         </Link>
-
-        <div className="relative ml-2 hidden flex-1 md:block">
-          <Search className="absolute left-3.5 top-1/2 size-4.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Искать товары, бренды и категории..."
-            className="h-11 rounded-full border-transparent bg-muted pl-11 focus-visible:border-ring focus-visible:bg-background"
-          />
-        </div>
 
         <div className="ml-auto flex items-center gap-1">
           {user && (
