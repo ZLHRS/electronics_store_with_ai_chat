@@ -8,7 +8,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
           <Sparkles className="size-5" />
         </span>
-        <span className="text-xl font-semibold tracking-tight">Shop</span>
+        <span className="text-xl font-semibold tracking-tight">Kvant</span>
       </Link>
       {children}
     </div>

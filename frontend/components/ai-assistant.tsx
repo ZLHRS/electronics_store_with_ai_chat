@@ -47,7 +47,7 @@ const promptChips = [
 const greeting: Message = {
   id: 0,
   role: "assistant",
-  text: "Привет! Я AI-ассистент Shop. Опишите, что вы ищете, а я подберу лучшие варианты под ваш бюджет и задачи.",
+  text: "Привет! Я AI-ассистент Kvant. Опишите, что вы ищете, а я подберу лучшие варианты под ваш бюджет и задачи.",
 }
 
 function ChatProductCard({ product, onClose }: { product: Product; onClose: () => void }) {
@@ -244,7 +244,7 @@ export function AiAssistant() {
           </span>
           <div className="flex-1">
             <p className="flex items-center gap-1.5 text-sm font-semibold">
-              AI-ассистент Shop
+              AI-ассистент Kvant
               <Sparkles className="size-3.5 text-primary" />
             </p>
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">

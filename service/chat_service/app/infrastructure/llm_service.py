@@ -5,7 +5,7 @@ import openai
 from app.domain.entity.chat_entity import MessageEntity
 from app.domain.repo.chat_repo import ProductContext
 
-_SYSTEM = """Ты AI-ассистент интернет-магазина Shop.
+_SYSTEM = """Ты AI-ассистент интернет-магазина Kvant.
 Твоя задача — помогать пользователям найти подходящие товары.
 
 Правила:

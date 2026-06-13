@@ -11,10 +11,10 @@ export function SiteFooter() {
           <span className="flex size-6 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Sparkles className="size-3.5" />
           </span>
-          <span className="text-sm font-medium">Shop</span>
+          <span className="text-sm font-medium">Kvant</span>
         </Link>
 
-        <p className="text-center text-xs text-muted-foreground">© 2026 Shop. Все права защищены.</p>
+        <p className="text-center text-xs text-muted-foreground">© 2026 Kvant. Все права защищены.</p>
 
         <div className="flex items-center justify-end gap-4 text-xs text-muted-foreground">
           <span className="cursor-pointer hover:text-foreground transition-colors">Конфиденциальность</span>

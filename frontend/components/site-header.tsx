@@ -188,7 +188,7 @@ function Logo() {
       <span className="flex size-8 items-center justify-center rounded-xl bg-primary text-primary-foreground">
         <Sparkles className="size-4.5" />
       </span>
-      <span className="text-lg font-semibold tracking-tight">Shop</span>
+      <span className="text-lg font-semibold tracking-tight">Kvant</span>
     </span>
   )
 }
