@@ -22,7 +22,7 @@ const PAYMENT_OPTIONS = [
 export default function CheckoutPage() {
   const router = useRouter()
   const { user, loading: authLoading } = useAuth()
-  const { items, subtotal, clear, setOpen } = useCart()
+  const { items, subtotal, isLoading: cartLoading, clear, setOpen } = useCart()
   const [address, setAddress] = useState("")
   const [paymentMethod, setPaymentMethod] = useState("card")
   const [submitting, setSubmitting] = useState(false)
@@ -38,16 +38,21 @@ export default function CheckoutPage() {
     }
   }, [user, authLoading, router])
 
-  useEffect(() => {
-    if (!authLoading && user && items.length === 0 && !ordered) {
-      router.replace("/")
-    }
-  }, [items, authLoading, user, router, ordered])
-
-  if (authLoading || !user || items.length === 0 || ordered) {
+  if (authLoading || cartLoading || ordered) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <Loader2 className="size-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (!user) return null
+
+  if (items.length === 0) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
+        <p className="text-muted-foreground">Корзина пуста</p>
+        <Button render={<Link href="/" />}>Перейти к покупкам</Button>
       </div>
     )
   }

@@ -18,6 +18,7 @@ type CartContextType = {
   items: CartItem[]
   count: number
   subtotal: number
+  isLoading: boolean
   isOpen: boolean
   setOpen: (open: boolean) => void
   add: (product: Product, qty?: number) => void
@@ -50,6 +51,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
   const { user } = useAuth()
   const [items, setItems] = useState<CartItem[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [isOpen, setOpen] = useState(false)
   const itemsRef = useRef<CartItem[]>([])
 
@@ -67,9 +69,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!user) {
       setItems([])
       itemsRef.current = []
+      setIsLoading(false)
       return
     }
-    apiGetCart().then(sync).catch(() => {})
+    setIsLoading(true)
+    apiGetCart().then(sync).catch(() => {}).finally(() => setIsLoading(false))
   }, [user, sync])
 
   const add = useCallback(async (product: Product, qty = 1) => {
@@ -141,7 +145,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const subtotal = items.reduce((acc, i) => acc + i.product.price * i.qty, 0)
 
   return (
-    <CartContext.Provider value={{ items, count, subtotal, isOpen, setOpen, add, remove, setQty, clear }}>
+    <CartContext.Provider value={{ items, count, subtotal, isLoading, isOpen, setOpen, add, remove, setQty, clear }}>
       {children}
     </CartContext.Provider>
   )
