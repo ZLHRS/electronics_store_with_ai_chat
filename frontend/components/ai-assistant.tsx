@@ -20,6 +20,22 @@ type Message = {
   products?: Product[]
 }
 
+function renderMarkdown(text: string): React.ReactNode {
+  const lines = text.split("\n")
+  return lines.map((line, i) => {
+    const parts = line.split(/\*\*(.+?)\*\*/g)
+    const rendered = parts.map((part, j) =>
+      j % 2 === 1 ? <strong key={j}>{part}</strong> : part,
+    )
+    return (
+      <span key={i}>
+        {rendered}
+        {i < lines.length - 1 && <br />}
+      </span>
+    )
+  })
+}
+
 const promptChips = [
   "Ноутбук до 400 000 ₸",
   "Игровой ПК для CS2",
@@ -274,7 +290,7 @@ export function AiAssistant() {
                         : "rounded-tr-md bg-primary text-primary-foreground",
                     )}
                   >
-                    {m.text}
+                    {m.role === "assistant" ? renderMarkdown(m.text) : m.text}
                   </div>
                   {m.products && m.products.length > 0 && (
                     <div className="flex w-full flex-col gap-2">

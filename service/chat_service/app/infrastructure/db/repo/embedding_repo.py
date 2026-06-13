@@ -18,7 +18,7 @@ class SQLAlchemyEmbeddingRepo(SQLAlchemyBaseRepo, EmbeddingRepository):
         embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
         stmt = text("""
             INSERT INTO product_embeddings (id, product_id, content, embedding, updated_at)
-            VALUES (:id, :product_id, :content, :embedding::vector, NOW())
+            VALUES (:id, :product_id, :content, CAST(:embedding AS vector), NOW())
             ON CONFLICT (product_id) DO UPDATE
             SET content = EXCLUDED.content,
                 embedding = EXCLUDED.embedding,
@@ -41,9 +41,9 @@ class SQLAlchemyEmbeddingRepo(SQLAlchemyBaseRepo, EmbeddingRepository):
         embedding_str = "[" + ",".join(str(x) for x in query_embedding) + "]"
         stmt = text("""
             SELECT product_id, content,
-                   1 - (embedding <=> :embedding::vector) AS similarity
+                   1 - (embedding <=> CAST(:embedding AS vector)) AS similarity
             FROM product_embeddings
-            ORDER BY embedding <=> :embedding::vector
+            ORDER BY embedding <=> CAST(:embedding AS vector)
             LIMIT :limit
         """)
         try:
