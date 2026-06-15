@@ -1,6 +1,7 @@
 "use client"
 
 import { use, useEffect, useState } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { ArrowLeft, Clock, CheckCircle2, Truck, XCircle, Package, Check, Loader2, CreditCard } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
@@ -13,6 +14,7 @@ import {
   type FrontendOrder,
   type ApiOrderStatus,
 } from "@/lib/api/orders"
+import { fetchProductById } from "@/lib/api/products"
 import { formatPrice } from "@/lib/data"
 import { cn } from "@/lib/utils"
 
@@ -60,11 +62,23 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
   const [order, setOrder] = useState<FrontendOrder | null>(null)
   const [loading, setLoading] = useState(true)
   const [cancelling, setCancelling] = useState(false)
+  const [itemImages, setItemImages] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (!user) return
     fetchOrderById(id)
-      .then(setOrder)
+      .then((o) => {
+        setOrder(o)
+        if (o) {
+          Promise.all(o.items.map((item) => fetchProductById(item.product_id))).then((products) => {
+            const map: Record<string, string> = {}
+            products.forEach((p, i) => {
+              if (p?.image) map[o.items[i].product_id] = p.image
+            })
+            setItemImages(map)
+          })
+        }
+      })
       .finally(() => setLoading(false))
   }, [id, user])
 
@@ -230,8 +244,18 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
         <div className="divide-y">
           {order.items.map((item) => (
             <div key={item.id} className="flex items-center gap-4 px-5 py-4">
-              <div className="flex size-16 shrink-0 items-center justify-center rounded-xl bg-muted/60">
-                <Package className="size-6 text-muted-foreground/50" />
+              <div className="relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted/60">
+                {itemImages[item.product_id] ? (
+                  <Image
+                    src={itemImages[item.product_id]}
+                    alt={item.product_name}
+                    fill
+                    sizes="64px"
+                    className="object-contain p-1.5"
+                  />
+                ) : (
+                  <Package className="size-6 text-muted-foreground/50" />
+                )}
               </div>
               <div className="min-w-0 flex-1">
                 <Link

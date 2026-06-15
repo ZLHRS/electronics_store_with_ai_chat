@@ -25,22 +25,14 @@ class OrderProvider(Provider):
         return JWTService(jwt_config)
 
     @provide(scope=Scope.APP)
-    async def provide_cart_http_client(self, config: Config) -> AsyncIterable[httpx.AsyncClient]:
+    async def provide_cart_client(self, config: Config) -> AsyncIterable[CartServiceClient]:
         async with httpx.AsyncClient(base_url=config.cart_service.url, timeout=5.0) as client:
-            yield client
+            yield CartServiceClient(client, config.jwt.access_token_name)
 
     @provide(scope=Scope.APP)
-    async def provide_product_http_client(self, config: Config) -> AsyncIterable[httpx.AsyncClient]:
+    async def provide_product_client(self, config: Config) -> AsyncIterable[ProductServiceClient]:
         async with httpx.AsyncClient(base_url=config.product_service.url, timeout=5.0) as client:
-            yield client
-
-    @provide(scope=Scope.APP)
-    def provide_cart_client(self, client: httpx.AsyncClient, config: Config) -> CartServiceClient:
-        return CartServiceClient(client, config.jwt.access_token_name)
-
-    @provide(scope=Scope.APP)
-    def provide_product_client(self, client: httpx.AsyncClient) -> ProductServiceClient:
-        return ProductServiceClient(client)
+            yield ProductServiceClient(client)
 
     @provide(scope=Scope.REQUEST)
     def provide_order_repo(self, session: AsyncSession) -> OrderRepository:

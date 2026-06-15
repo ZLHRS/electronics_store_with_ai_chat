@@ -249,7 +249,7 @@ export function AiAssistant() {
             </p>
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span className="size-1.5 rounded-full bg-success" />
-              {user ? "Онлайн · Claude + RAG" : "Войдите для полного доступа"}
+              {user ? "Онлайн" : "Войдите для полного доступа"}
             </p>
           </div>
           <Button variant="ghost" size="icon" className="rounded-full" aria-label="Закрыть" onClick={() => setOpen(false)}>
