@@ -48,7 +48,9 @@ class SQLAlchemyCategoryRepo(SQLAlchemyBaseRepo, CategoryRepository):
             raise DatabaseError("Failed to create category") from e
         return category_model_to_entity(model)
 
-    async def update(self, category_id: uuid.UUID, name: str | None, slug: str | None) -> CategoryEntity:
+    async def update(
+        self, category_id: uuid.UUID, name: str | None, slug: str | None
+    ) -> CategoryEntity:
         stmt = select(CategoryModel).where(CategoryModel.id == category_id)
         try:
             model = (await self.session.execute(stmt)).scalar_one_or_none()

@@ -82,9 +82,7 @@ class EnvConfig(BaseSettings):
     embedding_model: str = Field(
         default="text-embedding-3-small", validation_alias="EMBEDDING_MODEL"
     )
-    llm_model: str = Field(
-        default="gpt-4o-mini", validation_alias="LLM_MODEL"
-    )
+    llm_model: str = Field(default="gpt-4o-mini", validation_alias="LLM_MODEL")
 
     cors_origins: str = Field(default="", validation_alias="CORS_ORIGINS")
     level: str = Field(default="INFO", validation_alias="LOG_LEVEL")

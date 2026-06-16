@@ -44,16 +44,12 @@ class ChatProvider(Provider):
         return EmbeddingService(client, ai_config.embedding_model)
 
     @provide(scope=Scope.APP)
-    def provide_llm_service(
-        self, client: openai.AsyncOpenAI, ai_config: AIConfig
-    ) -> LLMService:
+    def provide_llm_service(self, client: openai.AsyncOpenAI, ai_config: AIConfig) -> LLMService:
         return LLMService(client, ai_config.llm_model)
 
     @provide(scope=Scope.APP)
     async def provide_http_client(self, config: Config) -> AsyncIterable[httpx.AsyncClient]:
-        async with httpx.AsyncClient(
-            base_url=config.product_service.url, timeout=10.0
-        ) as client:
+        async with httpx.AsyncClient(base_url=config.product_service.url, timeout=10.0) as client:
             yield client
 
     @provide(scope=Scope.APP)

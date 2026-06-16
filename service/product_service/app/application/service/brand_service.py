@@ -1,5 +1,4 @@
 import logging
-
 import uuid
 
 from app.application.dto.product_dto import BrandResult, CreateBrandCommand, UpdateBrandCommand

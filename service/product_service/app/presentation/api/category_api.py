@@ -6,7 +6,6 @@ from fastapi import APIRouter, Depends
 from app.application.dto.product_dto import CreateCategoryCommand, UpdateCategoryCommand
 from app.application.service.category_service import CategoryService
 from app.domain.permissions import P
-from app.exceptions import CategoryNotFoundError
 from app.presentation.deps import require_permission
 from app.presentation.schema.category_schema import (
     CategoryResponse,
@@ -49,7 +48,9 @@ async def update_category(
     service: FromDishka[CategoryService],
     _: object = Depends(require_permission(P.PRODUCTS_UPDATE)),
 ) -> CategoryResponse:
-    result = await service.update_category(category_id, UpdateCategoryCommand(name=data.name, slug=data.slug))
+    result = await service.update_category(
+        category_id, UpdateCategoryCommand(name=data.name, slug=data.slug)
+    )
     return CategoryResponse(
         id=result.id, name=result.name, slug=result.slug, parent_id=result.parent_id
     )

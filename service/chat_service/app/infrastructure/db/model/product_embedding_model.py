@@ -11,9 +11,7 @@ from app.infrastructure.db.model.base_model import BaseModel
 class ProductEmbeddingModel(BaseModel):
     __tablename__ = "product_embeddings"
 
-    product_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), nullable=False, unique=True
-    )
+    product_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, unique=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     embedding: Mapped[list] = mapped_column(Vector(1536), nullable=False)
     updated_at: Mapped[datetime.datetime] = mapped_column(

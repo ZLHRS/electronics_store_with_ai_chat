@@ -1,5 +1,6 @@
 services:
   frontend:
+    image: ${IMAGE_PREFIX:-kvant}/frontend:${IMAGE_TAG:-latest}
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -12,6 +13,7 @@ services:
       - internal
 
   auth_service:
+    image: ${IMAGE_PREFIX:-kvant}/auth_service:${IMAGE_TAG:-latest}
     build:
       context: ./service/auth_service
       dockerfile: Dockerfile
@@ -31,6 +33,7 @@ services:
       - internal
 
   user_service:
+    image: ${IMAGE_PREFIX:-kvant}/user_service:${IMAGE_TAG:-latest}
     build:
       context: ./service/user_service
       dockerfile: Dockerfile
@@ -50,6 +53,7 @@ services:
       - internal
 
   product_service:
+    image: ${IMAGE_PREFIX:-kvant}/product_service:${IMAGE_TAG:-latest}
     build:
       context: ./service/product_service
       dockerfile: Dockerfile
@@ -69,6 +73,7 @@ services:
       - internal
 
   cart_service:
+    image: ${IMAGE_PREFIX:-kvant}/cart_service:${IMAGE_TAG:-latest}
     build:
       context: ./service/cart_service
       dockerfile: Dockerfile
@@ -89,6 +94,7 @@ services:
       - internal
 
   order_service:
+    image: ${IMAGE_PREFIX:-kvant}/order_service:${IMAGE_TAG:-latest}
     build:
       context: ./service/order_service
       dockerfile: Dockerfile
@@ -110,6 +116,7 @@ services:
       - internal
 
   payment_service:
+    image: ${IMAGE_PREFIX:-kvant}/payment_service:${IMAGE_TAG:-latest}
     build:
       context: ./service/payment_service
       dockerfile: Dockerfile
@@ -130,6 +137,7 @@ services:
       - internal
 
   chat_service:
+    image: ${IMAGE_PREFIX:-kvant}/chat_service:${IMAGE_TAG:-latest}
     build:
       context: ./service/chat_service
       dockerfile: Dockerfile

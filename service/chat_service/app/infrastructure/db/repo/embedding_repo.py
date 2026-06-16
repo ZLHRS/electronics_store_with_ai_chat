@@ -12,9 +12,7 @@ from app.infrastructure.db.repo.base import SQLAlchemyBaseRepo
 
 
 class SQLAlchemyEmbeddingRepo(SQLAlchemyBaseRepo, EmbeddingRepository):
-    async def upsert(
-        self, product_id: uuid.UUID, content: str, embedding: list[float]
-    ) -> None:
+    async def upsert(self, product_id: uuid.UUID, content: str, embedding: list[float]) -> None:
         embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
         stmt = text("""
             INSERT INTO product_embeddings (id, product_id, content, embedding, updated_at)
@@ -25,19 +23,20 @@ class SQLAlchemyEmbeddingRepo(SQLAlchemyBaseRepo, EmbeddingRepository):
                 updated_at = NOW()
         """)
         try:
-            await self.session.execute(stmt, {
-                "id": str(uuid4()),
-                "product_id": str(product_id),
-                "content": content,
-                "embedding": embedding_str,
-            })
+            await self.session.execute(
+                stmt,
+                {
+                    "id": str(uuid4()),
+                    "product_id": str(product_id),
+                    "content": content,
+                    "embedding": embedding_str,
+                },
+            )
             await self.session.flush()
         except SQLAlchemyError as e:
             raise DatabaseError("Failed to upsert embedding") from e
 
-    async def search(
-        self, query_embedding: list[float], limit: int
-    ) -> list[ProductContext]:
+    async def search(self, query_embedding: list[float], limit: int) -> list[ProductContext]:
         embedding_str = "[" + ",".join(str(x) for x in query_embedding) + "]"
         stmt = text("""
             SELECT product_id, content,
@@ -47,9 +46,7 @@ class SQLAlchemyEmbeddingRepo(SQLAlchemyBaseRepo, EmbeddingRepository):
             LIMIT :limit
         """)
         try:
-            result = await self.session.execute(
-                stmt, {"embedding": embedding_str, "limit": limit}
-            )
+            result = await self.session.execute(stmt, {"embedding": embedding_str, "limit": limit})
         except SQLAlchemyError as e:
             raise DatabaseError("Vector search failed") from e
         return [

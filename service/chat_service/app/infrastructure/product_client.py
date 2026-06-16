@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import uuid
-from dataclasses import dataclass
 from decimal import Decimal
 
 import httpx
@@ -21,9 +20,7 @@ class ProductServiceClient:
         page = 1
         while True:
             try:
-                response = await self._client.get(
-                    f"/api/v1/products?page={page}&limit=100"
-                )
+                response = await self._client.get(f"/api/v1/products?page={page}&limit=100")
             except httpx.RequestError as e:
                 logger.warning("Product service unavailable: %s", e)
                 break

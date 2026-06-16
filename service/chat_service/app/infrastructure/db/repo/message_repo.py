@@ -14,9 +14,7 @@ from app.infrastructure.mapper.chat_mapper import message_model_to_entity
 
 
 class SQLAlchemyMessageRepo(SQLAlchemyBaseRepo, MessageRepository):
-    async def get_by_session_id(
-        self, session_id: uuid.UUID, limit: int
-    ) -> list[MessageEntity]:
+    async def get_by_session_id(self, session_id: uuid.UUID, limit: int) -> list[MessageEntity]:
         stmt = (
             select(MessageModel)
             .where(MessageModel.session_id == session_id)
@@ -29,9 +27,7 @@ class SQLAlchemyMessageRepo(SQLAlchemyBaseRepo, MessageRepository):
             raise DatabaseError("Failed to get messages") from e
         return list(reversed([message_model_to_entity(r) for r in results]))
 
-    async def create(
-        self, session_id: uuid.UUID, role: str, content: str
-    ) -> MessageEntity:
+    async def create(self, session_id: uuid.UUID, role: str, content: str) -> MessageEntity:
         model = MessageModel(session_id=session_id, role=role, content=content)
         self.session.add(model)
         try:

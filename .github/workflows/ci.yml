@@ -1,0 +1,156 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint · ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - auth_service
+          - user_service
+          - product_service
+          - cart_service
+          - order_service
+          - payment_service
+          - chat_service
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: service/${{ matrix.service }}/uv.lock
+
+      - name: Install
+        working-directory: service/${{ matrix.service }}
+        run: uv sync --frozen --no-dev
+
+      - name: ruff check
+        working-directory: service/${{ matrix.service }}
+        run: uv run ruff check .
+
+      - name: ruff format
+        working-directory: service/${{ matrix.service }}
+        run: uv run ruff format --check .
+
+  unit-tests:
+    name: Tests · ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - auth_service
+          - user_service
+          - product_service
+          - cart_service
+          - order_service
+          - payment_service
+    env:
+      DB_HOST: localhost
+      DB_PORT: "5432"
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: testdb
+      AUTH_SECRET_KEY: ci-test-secret-key-for-github-actions-32ch
+      AUTH_ALGORITHM: HS256
+      AUTH_ACCESS_TOKEN_EXPIRE_MINUTES: "15"
+      AUTH_REFRESH_TOKEN_EXPIRE_DAYS: "7"
+      AUTH_COOKIE_SECURE: "false"
+      AUTH_COOKIE_SAMESITE: lax
+      REDIS_URL: redis://localhost:6379
+      LOG_LEVEL: INFO
+      PRODUCT_SERVICE_URL: http://localhost:8002
+      CART_SERVICE_URL: http://localhost:8003
+      ORDER_SERVICE_URL: http://localhost:8004
+      OPENAI_API_KEY: sk-test-not-used-in-unit-tests
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: service/${{ matrix.service }}/uv.lock
+
+      - name: Install
+        working-directory: service/${{ matrix.service }}
+        run: uv sync --frozen
+
+      - name: Run unit tests
+        working-directory: service/${{ matrix.service }}
+        run: uv run pytest tests/unit -v --tb=short
+
+  frontend:
+    name: Frontend · Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        working-directory: frontend
+        run: pnpm build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+  docker:
+    name: Docker · ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: [lint, unit-tests, frontend]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: auth_service
+            context: service/auth_service
+          - service: user_service
+            context: service/user_service
+          - service: product_service
+            context: service/product_service
+          - service: cart_service
+            context: service/cart_service
+          - service: order_service
+            context: service/order_service
+          - service: payment_service
+            context: service/payment_service
+          - service: chat_service
+            context: service/chat_service
+          - service: frontend
+            context: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build ${{ matrix.service }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}

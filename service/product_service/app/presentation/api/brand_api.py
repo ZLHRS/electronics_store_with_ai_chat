@@ -7,7 +7,11 @@ from app.application.dto.product_dto import CreateBrandCommand, UpdateBrandComma
 from app.application.service.brand_service import BrandService
 from app.domain.permissions import P
 from app.presentation.deps import require_permission
-from app.presentation.schema.brand_schema import BrandResponse, CreateBrandRequest, UpdateBrandRequest
+from app.presentation.schema.brand_schema import (
+    BrandResponse,
+    CreateBrandRequest,
+    UpdateBrandRequest,
+)
 
 router = APIRouter(prefix="/brands")
 
@@ -38,7 +42,9 @@ async def update_brand(
     service: FromDishka[BrandService],
     _: object = Depends(require_permission(P.PRODUCTS_UPDATE)),
 ) -> BrandResponse:
-    result = await service.update_brand(brand_id, UpdateBrandCommand(name=data.name, slug=data.slug))
+    result = await service.update_brand(
+        brand_id, UpdateBrandCommand(name=data.name, slug=data.slug)
+    )
     return BrandResponse(id=result.id, name=result.name, slug=result.slug)
 
 

@@ -1,8 +1,11 @@
 import logging
-
 import uuid
 
-from app.application.dto.product_dto import CategoryResult, CreateCategoryCommand, UpdateCategoryCommand
+from app.application.dto.product_dto import (
+    CategoryResult,
+    CreateCategoryCommand,
+    UpdateCategoryCommand,
+)
 from app.domain.entity.category_entity import CreateCategory
 from app.domain.repo.category_repo_protocol import CategoryRepository
 from app.exceptions import CategoryNotFoundError, SlugAlreadyExistsError
@@ -29,7 +32,9 @@ class CategoryService:
         logger.info("Category created slug=%s", slug)
         return _to_result(category)
 
-    async def update_category(self, category_id: uuid.UUID, command: UpdateCategoryCommand) -> CategoryResult:
+    async def update_category(
+        self, category_id: uuid.UUID, command: UpdateCategoryCommand
+    ) -> CategoryResult:
         if not await self._categories.get_by_id(category_id):
             raise CategoryNotFoundError(f"Category {category_id} not found")
         new_slug = command.slug or (slugify(command.name) if command.name else None)

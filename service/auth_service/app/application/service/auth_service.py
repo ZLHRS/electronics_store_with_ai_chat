@@ -17,6 +17,7 @@ from app.domain.repo.permission_repo_protocol import PermissionRepository
 from app.domain.repo.session_repo_protocol import SessionRepository
 from app.domain.repo.user_repo_protocol import UserRepository
 from app.exceptions import (
+    AlreadyLoggedInError,
     DuplicateEntryError,
     InvalidCredentialsError,
     InvalidTokenError,
@@ -70,8 +71,7 @@ class AuthService:
             raise InvalidCredentialsError("Invalid credentials")
 
         if await self._sessions.has_active_session(user.id):
-            await self._sessions.revoke_all_by_user_id(user.id)
-            await self._cache.delete(user.id)
+            raise AlreadyLoggedInError("User already has an active session")
 
         permissions = await self._permissions.get_user_permissions(user.id)
         ttl = self._config.access_token_expire_minutes * 60
