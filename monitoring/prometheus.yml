@@ -1,0 +1,57 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    project: kvant
+
+scrape_configs:
+  - job_name: auth_service
+    static_configs:
+      - targets: ["auth_service:8000"]
+    metrics_path: /metrics
+
+  - job_name: user_service
+    static_configs:
+      - targets: ["user_service:8001"]
+    metrics_path: /metrics
+
+  - job_name: product_service
+    static_configs:
+      - targets: ["product_service:8002"]
+    metrics_path: /metrics
+
+  - job_name: cart_service
+    static_configs:
+      - targets: ["cart_service:8003"]
+    metrics_path: /metrics
+
+  - job_name: order_service
+    static_configs:
+      - targets: ["order_service:8004"]
+    metrics_path: /metrics
+
+  - job_name: payment_service
+    static_configs:
+      - targets: ["payment_service:8005"]
+    metrics_path: /metrics
+
+  - job_name: chat_service
+    static_configs:
+      - targets: ["chat_service:8006"]
+    metrics_path: /metrics
+
+  - job_name: node_exporter
+    static_configs:
+      - targets: ["node_exporter:9100"]
+
+  - job_name: postgres_exporter
+    static_configs:
+      - targets: ["postgres_exporter:9187"]
+
+  - job_name: redis_exporter
+    static_configs:
+      - targets: ["redis_exporter:9121"]
+
+  - job_name: nginx_exporter
+    static_configs:
+      - targets: ["nginx_exporter:9113"]

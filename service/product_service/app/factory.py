@@ -6,6 +6,7 @@ from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_limiter import FastAPILimiter
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.config import setup_config
 from app.infrastructure.di.dishka_di import setup_dishka_container
@@ -43,4 +44,7 @@ def create_app() -> FastAPI:
     application.include_router(main_router)
     setup_dishka(dishka_container, application)
     register_exception_handlers(application)
+    Instrumentator(excluded_handlers=["/metrics"]).instrument(application).expose(
+        application, include_in_schema=False
+    )
     return application

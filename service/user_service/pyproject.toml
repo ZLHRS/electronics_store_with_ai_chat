@@ -16,6 +16,7 @@ dependencies = [
     "ruff>=0.15.15",
     "fastapi-limiter<0.2.0",
     "redis>=8.0.0",
+    "prometheus-fastapi-instrumentator>=8.0.0",
 ]
 
 [dependency-groups]
